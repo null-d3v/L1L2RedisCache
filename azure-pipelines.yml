@@ -2,8 +2,9 @@ pool:
   vmImage: 'Ubuntu 16.04'
 
 variables:
-  buildConfiguration: 'Release'
 
 steps:
-- script: dotnet pack -c $(buildConfiguration) -o ./
-  displayName: 'dotnet pack'
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'pack'
+    configuration: 'release'
