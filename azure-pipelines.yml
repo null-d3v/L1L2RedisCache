@@ -6,7 +6,3 @@ steps:
   inputs:
     command: 'pack'
     configuration: 'release'
-    versioningScheme: byPrereleaseNumber
-    majorVersion: '1'
-    minorVersion: '0'
-    patchVersion: '0'
