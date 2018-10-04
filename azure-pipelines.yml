@@ -7,6 +7,10 @@ variables:
 steps:
 - script: |
     dotnet build -c $(buildConfiguration)
-    dotnet publish -c $(buildConfiguration) -o $BUILD_ARTIFACTSTAGINGDIRECTORY
+    dotnet publish -c $(buildConfiguration) -o ./
 
 - task: PublishBuildArtifacts@1
+  inputs:
+    artifactName: 'drop'
+    publishLocation: 'filePath'
+    targetPath: L1L2RedisCache.1.0.0.nupkg
