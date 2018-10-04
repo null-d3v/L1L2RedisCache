@@ -4,5 +4,6 @@ pool:
 variables:
   buildConfiguration: 'Release'
 
+steps:
 - script: dotnet pack -c $(buildConfiguration) -o ./
   displayName: 'dotnet pack'
