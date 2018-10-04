@@ -5,8 +5,7 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-- script: |
-    dotnet build -c $(buildConfiguration)
+- script:
     dotnet publish -c $(buildConfiguration) -o $(Build.ArtifactStagingDirectory)
 
 - task: PublishBuildArtifacts@1
