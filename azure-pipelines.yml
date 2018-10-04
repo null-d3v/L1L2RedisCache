@@ -4,6 +4,7 @@ pool:
 variables:
   buildConfiguration: 'Release'
 
+steps:
 - script: |
     dotnet build -c $(buildConfiguration)
     dotnet publish -c $(buildConfiguration) -o $BUILD_ARTIFACTSTAGINGDIRECTORY
