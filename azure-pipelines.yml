@@ -8,3 +8,5 @@ steps:
 - script: |
     dotnet build -c $(buildConfiguration)
     dotnet publish -c $(buildConfiguration) -o $BUILD_ARTIFACTSTAGINGDIRECTORY
+
+- task: PublishBuildArtifacts@1
