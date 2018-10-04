@@ -1,8 +1,9 @@
 pool:
   vmImage: 'Ubuntu 16.04'
 
-steps:
-- task: DotNetCoreCLI@2
-  inputs:
-    command: 'pack'
-    configuration: 'release'
+variables:
+  buildConfiguration: 'Release'
+
+- script: |
+    dotnet build -c $(buildConfiguration)
+    dotnet publish -c $(buildConfiguration) -o $BUILD_ARTIFACTSTAGINGDIRECTORY
