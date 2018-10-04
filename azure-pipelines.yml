@@ -3,15 +3,6 @@ pool:
 
 variables:
   buildConfiguration: 'Release'
-  major: '1'
-  minor: '0'
-  patch: '0'
 
-steps:
-- task: NuGetCommand@2
-  inputs:
-    command: pack
-    versioningScheme: byPrereleaseNumber
-    majorVersion: '$(major)'
-    minorVersion: '$(minor)'
-    patchVersion: '$(patch)'
+- script: dotnet pack -c $(buildConfiguration) -o ./
+  displayName: 'dotnet pack'
