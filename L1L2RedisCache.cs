@@ -127,7 +127,14 @@ namespace L1L2RedisCache
             await RedisCache.RemoveAsync(key);
             MemoryCache.Remove(
                 $"{RedisCacheOptions.InstanceName}{key}");
-            await Subscriber.PublishAsync(Channel, key);
+            await Subscriber.PublishAsync(
+                Channel,
+                JsonConvert.SerializeObject(
+                    new CacheMessage
+                    {
+                        Key = key,
+                        PublisherId = PublisherId,
+                    }));
         }
 
         public void Set(
