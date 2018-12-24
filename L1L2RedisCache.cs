@@ -124,7 +124,7 @@ namespace L1L2RedisCache
             string key,
             CancellationToken token = default(CancellationToken))
         {
-            await RedisCache.RemoveAsync(key);
+            await RedisCache.RemoveAsync(key, token);
             MemoryCache.Remove(
                 $"{RedisCacheOptions.InstanceName}{key}");
             await Subscriber.PublishAsync(
@@ -160,7 +160,7 @@ namespace L1L2RedisCache
             DistributedCacheEntryOptions options,
             CancellationToken token = default(CancellationToken))
         {
-            await RedisCache.SetAsync(key, value, options);
+            await RedisCache.SetAsync(key, value, options, token);
             SetMemoryCache(key, value, options);
             await Subscriber.PublishAsync(
                 Channel,
