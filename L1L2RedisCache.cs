@@ -190,9 +190,14 @@ namespace L1L2RedisCache
             }
             else
             {
-                var hashEntries = ConnectionMultiplexer
-                    .GetDatabase()
-                    .HashGetAll(key);
+                var hashEntries = new HashEntry[] { };
+                try
+                {
+                    hashEntries = ConnectionMultiplexer
+                        .GetDatabase()
+                        .HashGetAll(key);
+                }
+                catch (RedisServerException) { }
 
                 var absoluteExpirationHashEntry = hashEntries.FirstOrDefault(
                     hashEntry => hashEntry.Name == AbsoluteExpirationKey);
