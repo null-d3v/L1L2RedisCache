@@ -6,8 +6,8 @@ variables:
 
 steps:
 - script: |
-    dotnet build -c $(buildConfiguration)
-    dotnet pack -c $(buildConfiguration) -o $(Build.ArtifactStagingDirectory)
+    dotnet build src -c $(buildConfiguration)
+    dotnet pack src -c $(buildConfiguration) -o $(Build.ArtifactStagingDirectory)
 
 - task: PublishBuildArtifacts@1
   inputs:

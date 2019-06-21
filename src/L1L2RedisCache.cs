@@ -32,6 +32,8 @@ namespace L1L2RedisCache
             RedisCacheOptions = redisCacheOptionsAccessor?.Value ??
                 throw new ArgumentNullException(nameof(redisCacheOptionsAccessor));
 
+            LockKeyPrefix = $"{Guid.NewGuid().ToString()}.{RedisCacheOptions.InstanceName}";
+
             Channel = $"{RedisCacheOptions.InstanceName}.Channel";
             PublisherId = Guid.NewGuid();
             Subscriber = ConnectionMultiplexer.GetSubscriber();
@@ -51,6 +53,7 @@ namespace L1L2RedisCache
 
         public string Channel { get; }
         public IConnectionMultiplexer ConnectionMultiplexer { get; }
+        public string LockKeyPrefix { get; }
         public IMemoryCache MemoryCache { get; }
         public Guid PublisherId { get; }
         public RedisCache RedisCache { get; }
@@ -107,69 +110,126 @@ namespace L1L2RedisCache
 
         public void Remove(string key)
         {
-            RedisCache.Remove(key);
-            MemoryCache.Remove(
-                $"{RedisCacheOptions.InstanceName}{key}");
-            Subscriber.Publish(
-                Channel,
-                JsonConvert.SerializeObject(
-                    new CacheMessage
-                    {
-                        Key = key,
-                        PublisherId = PublisherId,
-                    }));
+            lock(GetOrCreateLock(key, null))
+            {
+                RedisCache.Remove(key);
+                MemoryCache.Remove(
+                    $"{RedisCacheOptions.InstanceName}{key}");
+                Subscriber.Publish(
+                    Channel,
+                    JsonConvert.SerializeObject(
+                        new CacheMessage
+                        {
+                            Key = key,
+                            PublisherId = PublisherId,
+                        }));
+                MemoryCache.Remove($"{LockKeyPrefix}{key}");
+            }
         }
 
         public async Task RemoveAsync(
             string key,
-            CancellationToken token = default(CancellationToken))
+            CancellationToken cancellationToken = default(CancellationToken))
         {
-            await RedisCache.RemoveAsync(key, token);
-            MemoryCache.Remove(
-                $"{RedisCacheOptions.InstanceName}{key}");
-            await Subscriber.PublishAsync(
-                Channel,
-                JsonConvert.SerializeObject(
-                    new CacheMessage
-                    {
-                        Key = key,
-                        PublisherId = PublisherId,
-                    }));
+            lock(await GetOrCreateLockAsync(
+                key, null, cancellationToken))
+            {
+                RedisCache.Remove(key);
+                MemoryCache.Remove(
+                    $"{RedisCacheOptions.InstanceName}{key}");
+                Subscriber.Publish(
+                    Channel,
+                    JsonConvert.SerializeObject(
+                        new CacheMessage
+                        {
+                            Key = key,
+                            PublisherId = PublisherId,
+                        }));
+                MemoryCache.Remove($"{LockKeyPrefix}{key}");
+            }
         }
 
         public void Set(
             string key,
             byte[] value,
-            DistributedCacheEntryOptions options)
+            DistributedCacheEntryOptions distributedCacheEntryOptions)
         {
-            RedisCache.Set(key, value, options);
-            SetMemoryCache(key, value, options);
-            Subscriber.Publish(
-                Channel,
-                JsonConvert.SerializeObject(
-                    new CacheMessage
-                    {
-                        Key = key,
-                        PublisherId = PublisherId,
-                    }));
+            lock(GetOrCreateLock(key, distributedCacheEntryOptions))
+            {
+                RedisCache.Set(
+                    key, value, distributedCacheEntryOptions);
+                SetMemoryCache(
+                    key, value, distributedCacheEntryOptions);
+                Subscriber.Publish(
+                    Channel,
+                    JsonConvert.SerializeObject(
+                        new CacheMessage
+                        {
+                            Key = key,
+                            PublisherId = PublisherId,
+                        }));
+            }
         }
 
         public async Task SetAsync(
             string key,
             byte[] value,
-            DistributedCacheEntryOptions options,
-            CancellationToken token = default(CancellationToken))
+            DistributedCacheEntryOptions distributedCacheEntryOptions,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
-            await RedisCache.SetAsync(key, value, options, token);
-            SetMemoryCache(key, value, options);
-            await Subscriber.PublishAsync(
-                Channel,
-                JsonConvert.SerializeObject(
-                    new CacheMessage
-                    {
-                        Key = key,
-                        PublisherId = PublisherId,
-                    }));
+            lock(await GetOrCreateLockAsync(
+                key, distributedCacheEntryOptions, cancellationToken))
+            {
+                RedisCache.Set(
+                    key, value, distributedCacheEntryOptions);
+                SetMemoryCache(
+                    key, value, distributedCacheEntryOptions);
+                Subscriber.Publish(
+                    Channel,
+                    JsonConvert.SerializeObject(
+                        new CacheMessage
+                        {
+                            Key = key,
+                            PublisherId = PublisherId,
+                        }));
+            }
+        }
+
+        private object GetOrCreateLock(
+            string key,
+            DistributedCacheEntryOptions distributedCacheEntryOptions)
+        {
+            return MemoryCache.GetOrCreate(
+                $"{LockKeyPrefix}{key}",
+                cacheEntry =>
+                {
+                    cacheEntry.AbsoluteExpiration =
+                        distributedCacheEntryOptions.AbsoluteExpiration;
+                    cacheEntry.AbsoluteExpirationRelativeToNow =
+                        distributedCacheEntryOptions.AbsoluteExpirationRelativeToNow;
+                    cacheEntry.SlidingExpiration =
+                        distributedCacheEntryOptions.SlidingExpiration;
+                    return Task.FromResult(new object());
+                });
+        }
+
+        private async Task<object> GetOrCreateLockAsync(
+            string key,
+            DistributedCacheEntryOptions distributedCacheEntryOptions,
+            CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return await MemoryCache.GetOrCreateAsync(
+                $"{LockKeyPrefix}{key}",
+                cacheEntry =>
+                {
+                    cacheEntry.AbsoluteExpiration =
+                        distributedCacheEntryOptions?.AbsoluteExpiration;
+                    cacheEntry.AbsoluteExpirationRelativeToNow =
+                        distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
+                    cacheEntry.SlidingExpiration =
+                        distributedCacheEntryOptions?.SlidingExpiration;
+                    return Task.FromResult(new object());
+                });
         }
 
         private void SetMemoryCache(
@@ -178,7 +238,7 @@ namespace L1L2RedisCache
             DistributedCacheEntryOptions distributedCacheEntryOptions = null)
         {
             var memoryCacheEntryOptions = new MemoryCacheEntryOptions();
-            
+
             if (distributedCacheEntryOptions != null)
             {
                 memoryCacheEntryOptions.AbsoluteExpiration =
