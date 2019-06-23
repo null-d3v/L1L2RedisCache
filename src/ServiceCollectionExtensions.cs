@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
+using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using System;
 
@@ -28,7 +29,9 @@ namespace Microsoft.Extensions.DependencyInjection
             services.AddSingleton<IConnectionMultiplexer>(
                 ConnectionMultiplexer.Connect(options.Configuration));
             services.AddMemoryCache();
-            services.AddSingleton<RedisCache, RedisCache>();
+            services.AddSingleton<Func<IDistributedCache>>(
+                provider => new Func<IDistributedCache>(
+                    () => new RedisCache(provider.GetService<IOptions<RedisCacheOptions>>())));
             services.AddSingleton<IDistributedCache, L1L2RedisCache.L1L2RedisCache>();
 
             return services;

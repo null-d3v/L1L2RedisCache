@@ -2,10 +2,11 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace L1L2RedisCache.Test
+namespace L1L2RedisCache.Test.Integration
 {
     public class Program
     {
@@ -34,6 +35,15 @@ namespace L1L2RedisCache.Test
 
             var distributedCache = serviceProvider
                 .GetService<IDistributedCache>();
+
+            distributedCache.SetString(
+                "key",
+                "value",
+                new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(20),
+                });
+            distributedCache.GetString("key");
 
             return 1;
         }

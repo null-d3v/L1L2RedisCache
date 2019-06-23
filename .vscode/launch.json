@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/test/bin/Debug/netcoreapp2.2/L1L2RedisCache.Test.dll",
+            "program": "${workspaceFolder}/test/integration/bin/Debug/netcoreapp2.2/L1L2RedisCache.Test.Integration.dll",
             "args": [],
             "cwd": "${workspaceFolder}/test",
             "console": "internalConsole",

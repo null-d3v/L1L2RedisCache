@@ -20,15 +20,15 @@ namespace L1L2RedisCache
         public L1L2RedisCache(
             IConnectionMultiplexer connectionMultiplexer,
             IMemoryCache memoryCache,
-            RedisCache redisCache,
+            Func<IDistributedCache> distributedCacheAccessor,
             IOptions<RedisCacheOptions> redisCacheOptionsAccessor)
         {
             ConnectionMultiplexer = connectionMultiplexer ??
                 throw new ArgumentNullException(nameof(connectionMultiplexer));
             MemoryCache = memoryCache ??
                 throw new ArgumentNullException(nameof(memoryCache));
-            RedisCache = redisCache ??
-                throw new ArgumentNullException(nameof(redisCache));
+            DistributedCache = distributedCacheAccessor() ??
+                throw new ArgumentNullException(nameof(distributedCacheAccessor));
             RedisCacheOptions = redisCacheOptionsAccessor?.Value ??
                 throw new ArgumentNullException(nameof(redisCacheOptionsAccessor));
 
@@ -53,10 +53,10 @@ namespace L1L2RedisCache
 
         public string Channel { get; }
         public IConnectionMultiplexer ConnectionMultiplexer { get; }
+        public IDistributedCache DistributedCache { get; }
         public string LockKeyPrefix { get; }
         public IMemoryCache MemoryCache { get; }
         public Guid PublisherId { get; }
-        public RedisCache RedisCache { get; }
         public RedisCacheOptions RedisCacheOptions { get; }
         public ISubscriber Subscriber { get; }
 
@@ -67,7 +67,7 @@ namespace L1L2RedisCache
 
             if (value == null)
             {
-                value = RedisCache.Get(key);
+                value = DistributedCache.Get(key);
                 if (value != null)
                 {
                     SetMemoryCache(key, value);
@@ -86,7 +86,7 @@ namespace L1L2RedisCache
 
             if (value == null)
             {
-                value = await RedisCache.GetAsync(key, token);
+                value = await DistributedCache.GetAsync(key, token);
                 if (value != null)
                 {
                     SetMemoryCache(key, value);
@@ -98,21 +98,21 @@ namespace L1L2RedisCache
 
         public void Refresh(string key)
         {
-            RedisCache.Refresh(key);
+            DistributedCache.Refresh(key);
         }
 
         public async Task RefreshAsync(
             string key,
             CancellationToken token = default(CancellationToken))
         {
-            await RedisCache.RefreshAsync(key, token);
+            await DistributedCache.RefreshAsync(key, token);
         }
 
         public void Remove(string key)
         {
             lock(GetOrCreateLock(key, null))
             {
-                RedisCache.Remove(key);
+                DistributedCache.Remove(key);
                 MemoryCache.Remove(
                     $"{RedisCacheOptions.InstanceName}{key}");
                 Subscriber.Publish(
@@ -134,7 +134,7 @@ namespace L1L2RedisCache
             lock(await GetOrCreateLockAsync(
                 key, null, cancellationToken))
             {
-                RedisCache.Remove(key);
+                DistributedCache.Remove(key);
                 MemoryCache.Remove(
                     $"{RedisCacheOptions.InstanceName}{key}");
                 Subscriber.Publish(
@@ -156,7 +156,7 @@ namespace L1L2RedisCache
         {
             lock(GetOrCreateLock(key, distributedCacheEntryOptions))
             {
-                RedisCache.Set(
+                DistributedCache.Set(
                     key, value, distributedCacheEntryOptions);
                 SetMemoryCache(
                     key, value, distributedCacheEntryOptions);
@@ -180,7 +180,7 @@ namespace L1L2RedisCache
             lock(await GetOrCreateLockAsync(
                 key, distributedCacheEntryOptions, cancellationToken))
             {
-                RedisCache.Set(
+                DistributedCache.Set(
                     key, value, distributedCacheEntryOptions);
                 SetMemoryCache(
                     key, value, distributedCacheEntryOptions);

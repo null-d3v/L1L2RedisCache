@@ -9,6 +9,12 @@ steps:
     dotnet build src -c $(buildConfiguration)
     dotnet pack src -c $(buildConfiguration) -o $(Build.ArtifactStagingDirectory)
 
+- task: DotNetCoreCLI@2
+  inputs:
+    command: test
+    projects: 'test/unit/L1L2RedisCache.Test.Unit.csproj'
+    arguments: '--configuration $(buildConfiguration)'
+
 - task: PublishBuildArtifacts@1
   inputs:
     artifactName: 'L1L2RedisCache'
