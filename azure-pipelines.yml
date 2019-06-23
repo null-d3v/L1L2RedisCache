@@ -12,7 +12,7 @@ steps:
 - task: DotNetCoreCLI@2
   inputs:
     command: test
-    projects: 'test/unit/L1L2RedisCache.Test.Unit.csproj'
+    projects: 'test/Unit/L1L2RedisCache.Test.Unit.csproj'
     arguments: '--configuration $(buildConfiguration)'
 
 - task: PublishBuildArtifacts@1
