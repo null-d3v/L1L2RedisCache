@@ -19,24 +19,38 @@ namespace L1L2RedisCache.Test.Unit
             var mockDatabase = new Mock<IDatabase>();
             mockDatabase
                 .Setup(
-                    m => m.HashGetAll(
+                    d => d.HashGetAll(
                         It.IsAny<RedisKey>(),
                         It.IsAny<CommandFlags>()))
                 .Returns(new HashEntry[] { });
+            mockDatabase
+                .Setup(
+                    d => d.KeyExists(
+                        It.IsAny<RedisKey>(),
+                        It.IsAny<CommandFlags>()))
+                .Returns<RedisKey, CommandFlags>(
+                    (k, cF) => L2Cache.Get(k) != null);
+            mockDatabase
+                .Setup(
+                    d => d.KeyExistsAsync(
+                        It.IsAny<RedisKey>(),
+                        It.IsAny<CommandFlags>()))
+                .Returns<RedisKey, CommandFlags>(
+                    async (k, cF) => await L2Cache.GetAsync(k) != null);
 
             var mockSubscriber = new Mock<ISubscriber>();
             mockSubscriber
                 .Setup(
-                    m => m.Subscribe(
+                    s => s.Subscribe(
                         It.IsAny<RedisChannel>(),
                         It.IsAny<Action<RedisChannel, RedisValue>>(),
                         It.IsAny<CommandFlags>()));
 
             mockConnectionMultiplexer
-                .Setup(m => m.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
+                .Setup(cM => cM.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
                 .Returns(mockDatabase.Object);
             mockConnectionMultiplexer
-                .Setup(m => m.GetSubscriber(It.IsAny<object>()))
+                .Setup(cM => cM.GetSubscriber(It.IsAny<object>()))
                 .Returns(mockSubscriber.Object);
 
             L1Cache = new MemoryCache(
