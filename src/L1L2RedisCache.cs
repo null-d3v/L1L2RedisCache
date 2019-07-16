@@ -69,7 +69,8 @@ namespace L1L2RedisCache
 
             if (value == null)
             {
-                if (Database.KeyExists(key))
+                if (Database.KeyExists(
+                    $"{RedisCacheOptions.InstanceName}{key}"))
                 {
                     lock(GetOrCreateLock(
                         key,
@@ -96,7 +97,8 @@ namespace L1L2RedisCache
 
             if (value == null)
             {
-                if (await Database.KeyExistsAsync(key))
+                if (await Database.KeyExistsAsync(
+                    $"{RedisCacheOptions.InstanceName}{key}"))
                 {
                     lock(await GetOrCreateLockAsync(
                         key,
@@ -221,7 +223,8 @@ namespace L1L2RedisCache
             var hashEntries = new HashEntry[] { };
             try
             {
-                hashEntries = Database.HashGetAll(key);
+                hashEntries = Database.HashGetAll(
+                    $"{RedisCacheOptions.InstanceName}{key}");
             }
             catch (RedisServerException) { }
 
