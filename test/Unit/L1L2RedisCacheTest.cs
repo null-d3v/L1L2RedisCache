@@ -36,7 +36,12 @@ namespace L1L2RedisCache.Test.Unit
                         It.IsAny<RedisKey>(),
                         It.IsAny<CommandFlags>()))
                 .Returns<RedisKey, CommandFlags>(
-                    async (k, cF) => await L2Cache.GetAsync(k) != null);
+                    async (k, cF) =>
+                    {
+                        var key  = ((string)k).Substring(
+                            RedisCacheOptions.InstanceName?.Length ?? 0);
+                        return await L2Cache.GetAsync(key) != null;
+                    });
 
             var mockSubscriber = new Mock<ISubscriber>();
             mockSubscriber

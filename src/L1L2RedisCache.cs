@@ -34,9 +34,10 @@ namespace L1L2RedisCache
                 RedisCacheOptions.ConfigurationOptions?.DefaultDatabase ?? -1) ??
                 throw new ArgumentNullException(nameof(connectionMultiplexer));
 
-            LockKeyPrefix = $"{Guid.NewGuid().ToString()}.{RedisCacheOptions.InstanceName}";
+            KeyPrefix = $"{RedisCacheOptions.InstanceName ?? string.Empty}";
+            LockKeyPrefix = $"{Guid.NewGuid().ToString()}.{KeyPrefix}";
 
-            Channel = $"{RedisCacheOptions.InstanceName}.Channel";
+            Channel = $"{KeyPrefix}.Channel";
             PublisherId = Guid.NewGuid();
             Subscriber = connectionMultiplexer.GetSubscriber();
             Subscriber.Subscribe(
@@ -48,7 +49,7 @@ namespace L1L2RedisCache
                     if (cacheMessage.PublisherId != PublisherId)
                     {
                         MemoryCache.Remove(
-                            $"{RedisCacheOptions.InstanceName}{cacheMessage.Key}");
+                            $"{KeyPrefix}{cacheMessage.Key}");
                     }
                 });
         }
@@ -56,6 +57,7 @@ namespace L1L2RedisCache
         public string Channel { get; }
         public IDatabase Database { get; }
         public IDistributedCache DistributedCache { get; }
+        public string KeyPrefix { get; }
         public string LockKeyPrefix { get; }
         public IMemoryCache MemoryCache { get; }
         public Guid PublisherId { get; }
@@ -65,12 +67,12 @@ namespace L1L2RedisCache
         public byte[] Get(string key)
         {
             var value = MemoryCache.Get(
-                $"{RedisCacheOptions.InstanceName}{key}") as byte[];
+                $"{KeyPrefix}{key}") as byte[];
 
             if (value == null)
             {
                 if (Database.KeyExists(
-                    $"{RedisCacheOptions.InstanceName}{key}"))
+                    $"{KeyPrefix}{key}"))
                 {
                     lock(GetOrCreateLock(
                         key,
@@ -93,12 +95,12 @@ namespace L1L2RedisCache
             CancellationToken cancellationToken = default(CancellationToken))
         {
             var value = MemoryCache.Get(
-                $"{RedisCacheOptions.InstanceName}{key}") as byte[];
+                $"{KeyPrefix}{key}") as byte[];
 
             if (value == null)
             {
                 if (await Database.KeyExistsAsync(
-                    $"{RedisCacheOptions.InstanceName}{key}"))
+                    $"{KeyPrefix}{key}"))
                 {
                     lock(await GetOrCreateLockAsync(
                         key,
@@ -134,7 +136,7 @@ namespace L1L2RedisCache
             {
                 DistributedCache.Remove(key);
                 MemoryCache.Remove(
-                    $"{RedisCacheOptions.InstanceName}{key}");
+                    $"{KeyPrefix}{key}");
                 Subscriber.Publish(
                     Channel,
                     JsonConvert.SerializeObject(
@@ -156,7 +158,7 @@ namespace L1L2RedisCache
             {
                 DistributedCache.Remove(key);
                 MemoryCache.Remove(
-                    $"{RedisCacheOptions.InstanceName}{key}");
+                    $"{KeyPrefix}{key}");
                 Subscriber.Publish(
                     Channel,
                     JsonConvert.SerializeObject(
@@ -224,7 +226,7 @@ namespace L1L2RedisCache
             try
             {
                 hashEntries = Database.HashGetAll(
-                    $"{RedisCacheOptions.InstanceName}{key}");
+                    $"{KeyPrefix}{key}");
             }
             catch (RedisServerException) { }
 
@@ -310,7 +312,7 @@ namespace L1L2RedisCache
             if (!memoryCacheEntryOptions.SlidingExpiration.HasValue)
             {
                 MemoryCache.Set(
-                    $"{RedisCacheOptions.InstanceName}{key}",
+                    $"{KeyPrefix}{key}",
                     value,
                     memoryCacheEntryOptions);
             }
