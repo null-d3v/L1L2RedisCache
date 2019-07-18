@@ -37,7 +37,7 @@ namespace L1L2RedisCache
             KeyPrefix = $"{RedisCacheOptions.InstanceName ?? string.Empty}";
             LockKeyPrefix = $"{Guid.NewGuid().ToString()}.{KeyPrefix}";
 
-            Channel = $"{KeyPrefix}.Channel";
+            Channel = $"{KeyPrefix}Channel";
             PublisherId = Guid.NewGuid();
             Subscriber = connectionMultiplexer.GetSubscriber();
             Subscriber.Subscribe(
