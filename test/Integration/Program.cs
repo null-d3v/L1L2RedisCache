@@ -34,7 +34,7 @@ namespace L1L2RedisCache.Test.Integration
         {
             var serviceProvider = Services.BuildServiceProvider();
 
-            var distributedCache = serviceProvider
+            var l1l2Cache = serviceProvider
                 .GetService<IDistributedCache>();
             var l2Cache = serviceProvider
                 .GetService<Func<IDistributedCache>>()();
@@ -53,19 +53,38 @@ namespace L1L2RedisCache.Test.Integration
                         AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(20),
                     });
             }
-
             stopWatch.Stop();
             Console.WriteLine($"{stopWatch.ElapsedTicks} ticks to populate");
 
-            Console.WriteLine("Starting L1 propagation");
-            stopWatch.Start();
+            Console.WriteLine("Starting L2 get test");
+            stopWatch.Restart();
             for (int index = 0; index < 1000; index++)
             {
-                var value = await distributedCache
+                var value = await l2Cache
                     .GetStringAsync($"key{index}");
             }
             stopWatch.Stop();
-            Console.WriteLine($"{stopWatch.ElapsedTicks} ticks to propagate");
+            Console.WriteLine($"{stopWatch.ElapsedTicks} ticks for L2 get test");
+
+            Console.WriteLine("Starting L1 propagation test");
+            stopWatch.Restart();
+            for (int index = 0; index < 1000; index++)
+            {
+                var value = await l1l2Cache
+                    .GetStringAsync($"key{index}");
+            }
+            stopWatch.Stop();
+            Console.WriteLine($"{stopWatch.ElapsedTicks} ticks for L1 propagation test");
+
+            Console.WriteLine("Starting L1L2 get test");
+            stopWatch.Restart();
+            for (int index = 0; index < 1000; index++)
+            {
+                var value = await l1l2Cache
+                    .GetStringAsync($"key{index}");
+            }
+            stopWatch.Stop();
+            Console.WriteLine($"{stopWatch.ElapsedTicks} ticks for L1 get test");
 
             return 1;
         }
