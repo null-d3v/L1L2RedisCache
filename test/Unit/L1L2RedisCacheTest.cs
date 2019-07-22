@@ -22,7 +22,17 @@ namespace L1L2RedisCache.Test.Unit
                     d => d.HashGetAll(
                         It.IsAny<RedisKey>(),
                         It.IsAny<CommandFlags>()))
-                .Returns(new HashEntry[] { });
+                .Returns<RedisKey, CommandFlags>(
+                    (k, cF) =>
+                    {
+                        var key = ((string)k).Substring(
+                            RedisCacheOptions.InstanceName?.Length ?? 0);
+                        var value = L2Cache.Get(key);
+                        return new HashEntry[]
+                        {
+                            new HashEntry("data", value),
+                        };
+                    });
             mockDatabase
                 .Setup(
                     d => d.KeyExists(
@@ -38,7 +48,7 @@ namespace L1L2RedisCache.Test.Unit
                 .Returns<RedisKey, CommandFlags>(
                     async (k, cF) =>
                     {
-                        var key  = ((string)k).Substring(
+                        var key = ((string)k).Substring(
                             RedisCacheOptions.InstanceName?.Length ?? 0);
                         return await L2Cache.GetAsync(key) != null;
                     });
@@ -69,7 +79,7 @@ namespace L1L2RedisCache.Test.Unit
             var redisCacheOptionsAccessor = Options.Create<RedisCacheOptions>(
                 new RedisCacheOptions
                 {
-                    InstanceName = "InstanceName",
+                    InstanceName = "InstanceName.",
                 });
             RedisCacheOptions = redisCacheOptionsAccessor.Value;
 
@@ -91,18 +101,18 @@ namespace L1L2RedisCache.Test.Unit
             var key = "key";
             var value = new byte[] { 0x20, 0x20, 0x20, };
 
-            var memoryKey = $"{RedisCacheOptions.InstanceName}{key}";
+            var prefixedKey = $"{RedisCacheOptions.InstanceName}{key}";
 
             await L2Cache.SetAsync(key, value);
 
             Assert.Null(
-                L1Cache.Get(memoryKey));
-
-            await L1L2Cache.GetAsync(key);
-
+                L1Cache.Get(prefixedKey));
             Assert.Equal(
                 value,
-                L1Cache.Get(memoryKey));
+                await L1L2Cache.GetAsync(key));
+            Assert.Equal(
+                value,
+                L1Cache.Get(prefixedKey));
         }
 
         [Fact]
@@ -111,7 +121,7 @@ namespace L1L2RedisCache.Test.Unit
             var key = "key";
             var value = new byte[] { 0x20, 0x20, 0x20, };
 
-            var memoryKey = $"{RedisCacheOptions.InstanceName}{key}";
+            var prefixedKey = $"{RedisCacheOptions.InstanceName}{key}";
 
             L1L2Cache.Set(key, value);
 
@@ -120,10 +130,13 @@ namespace L1L2RedisCache.Test.Unit
                 L1L2Cache.Get(key));
             Assert.Equal(
                 value,
-                L1Cache.Get(memoryKey));
+                L1Cache.Get(prefixedKey));
             Assert.Equal(
                 value,
                 L2Cache.Get(key));
+
+            var test1 = L2Cache.Get(key);
+            var test2 = L2Cache.Get(prefixedKey);
         }
 
         [Fact]
@@ -132,7 +145,7 @@ namespace L1L2RedisCache.Test.Unit
             var key = "key";
             var value = new byte[] { 0x20, 0x20, 0x20, };
 
-            var memoryKey = $"{RedisCacheOptions.InstanceName}{key}";
+            var prefixedKey = $"{RedisCacheOptions.InstanceName}{key}";
 
             L1L2Cache.Set(key, value);
 
@@ -141,7 +154,7 @@ namespace L1L2RedisCache.Test.Unit
                 L1L2Cache.Get(key));
             Assert.Equal(
                 value,
-                L1Cache.Get(memoryKey));
+                L1Cache.Get(prefixedKey));
             Assert.Equal(
                 value,
                 L2Cache.Get(key));
@@ -151,7 +164,7 @@ namespace L1L2RedisCache.Test.Unit
             Assert.Null(
                 L1L2Cache.Get(key));
             Assert.Null(
-                L1Cache.Get(memoryKey));
+                L1Cache.Get(prefixedKey));
             Assert.Null(
                 L2Cache.Get(key));
         }
@@ -162,7 +175,7 @@ namespace L1L2RedisCache.Test.Unit
             var key = "key";
             var value = new byte[] { 0x20, 0x20, 0x20, };
 
-            var memoryKey = $"{RedisCacheOptions.InstanceName}{key}";
+            var prefixedKey = $"{RedisCacheOptions.InstanceName}{key}";
 
             await L1L2Cache.SetAsync(key, value);
 
@@ -171,7 +184,7 @@ namespace L1L2RedisCache.Test.Unit
                 await L1L2Cache.GetAsync(key));
             Assert.Equal(
                 value,
-                L1Cache.Get(memoryKey));
+                L1Cache.Get(prefixedKey));
             Assert.Equal(
                 value,
                 await L2Cache.GetAsync(key));
@@ -183,7 +196,7 @@ namespace L1L2RedisCache.Test.Unit
             var key = "key";
             var value = new byte[] { 0x20, 0x20, 0x20, };
 
-            var memoryKey = $"{RedisCacheOptions.InstanceName}{key}";
+            var prefixedKey = $"{RedisCacheOptions.InstanceName}{key}";
 
             await L1L2Cache.SetAsync(key, value);
 
@@ -192,7 +205,7 @@ namespace L1L2RedisCache.Test.Unit
                 await L1L2Cache.GetAsync(key));
             Assert.Equal(
                 value,
-                L1Cache.Get(memoryKey));
+                L1Cache.Get(prefixedKey));
             Assert.Equal(
                 value,
                 await L2Cache.GetAsync(key));
@@ -202,7 +215,7 @@ namespace L1L2RedisCache.Test.Unit
             Assert.Null(
                 await L1L2Cache.GetAsync(key));
             Assert.Null(
-                L1Cache.Get(memoryKey));
+                L1Cache.Get(prefixedKey));
             Assert.Null(
                 await L2Cache.GetAsync(key));
         }
