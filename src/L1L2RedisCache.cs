@@ -5,7 +5,6 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,10 +12,6 @@ namespace L1L2RedisCache
 {
     public class L1L2RedisCache : IDistributedCache
     {
-        private const string AbsoluteExpirationKey = "absexp";
-        private const long NotPresent = -1;
-        private const string SlidingExpirationKey = "sldexp";
-
         public L1L2RedisCache(
             IConnectionMultiplexer connectionMultiplexer,
             IMemoryCache memoryCache,
@@ -50,6 +45,8 @@ namespace L1L2RedisCache
                     {
                         MemoryCache.Remove(
                             $"{KeyPrefix}{cacheMessage.Key}");
+                        MemoryCache.Remove(
+                            $"{LockKeyPrefix}{cacheMessage.Key}");
                     }
                 });
         }
@@ -74,15 +71,24 @@ namespace L1L2RedisCache
                 if (Database.KeyExists(
                     $"{KeyPrefix}{key}"))
                 {
-                    lock(GetOrCreateLock(
+                    var localLock = GetOrCreateLock(
                         key,
-                        GetDistributedCacheEntryOptions(key)))
+                        null);
+                    lock (localLock)
                     {
-                        value = DistributedCache.Get(key);
-                        if (value != null)
-                        {
-                            SetMemoryCache(key, value);
-                        }
+                        var hashEntries = GetHashEntries(key);
+                        var distributedCacheEntryOptions = hashEntries
+                            .GetDistributedCacheEntryOptions();
+                        value = hashEntries.GetRedisValue();
+
+                        SetMemoryCache(
+                            key,
+                            value,
+                            distributedCacheEntryOptions);
+                        SetLock(
+                            key,
+                            value,
+                            distributedCacheEntryOptions);
                     }
                 }
             }
@@ -102,15 +108,24 @@ namespace L1L2RedisCache
                 if (await Database.KeyExistsAsync(
                     $"{KeyPrefix}{key}"))
                 {
-                    lock(await GetOrCreateLockAsync(
+                    var localLock = await GetOrCreateLockAsync(
                         key,
-                        GetDistributedCacheEntryOptions(key)))
+                        null);
+                    lock (localLock)
                     {
-                        value = DistributedCache.Get(key);
-                        if (value != null)
-                        {
-                            SetMemoryCache(key, value);
-                        }
+                        var hashEntries = GetHashEntries(key);
+                        var distributedCacheEntryOptions = hashEntries
+                            .GetDistributedCacheEntryOptions();
+                        value = hashEntries.GetRedisValue();
+
+                        SetMemoryCache(
+                            key,
+                            value,
+                            distributedCacheEntryOptions);
+                        SetLock(
+                            key,
+                            value,
+                            distributedCacheEntryOptions);
                     }
                 }
             }
@@ -132,7 +147,7 @@ namespace L1L2RedisCache
 
         public void Remove(string key)
         {
-            lock(GetOrCreateLock(key, null))
+            lock (GetOrCreateLock(key, null))
             {
                 DistributedCache.Remove(key);
                 MemoryCache.Remove(
@@ -153,7 +168,7 @@ namespace L1L2RedisCache
             string key,
             CancellationToken cancellationToken = default(CancellationToken))
         {
-            lock(await GetOrCreateLockAsync(
+            lock (await GetOrCreateLockAsync(
                 key, null, cancellationToken))
             {
                 DistributedCache.Remove(key);
@@ -176,7 +191,7 @@ namespace L1L2RedisCache
             byte[] value,
             DistributedCacheEntryOptions distributedCacheEntryOptions)
         {
-            lock(GetOrCreateLock(key, distributedCacheEntryOptions))
+            lock (GetOrCreateLock(key, distributedCacheEntryOptions))
             {
                 DistributedCache.Set(
                     key, value, distributedCacheEntryOptions);
@@ -199,7 +214,7 @@ namespace L1L2RedisCache
             DistributedCacheEntryOptions distributedCacheEntryOptions,
             CancellationToken cancellationToken = default(CancellationToken))
         {
-            lock(await GetOrCreateLockAsync(
+            lock (await GetOrCreateLockAsync(
                 key, distributedCacheEntryOptions, cancellationToken))
             {
                 DistributedCache.Set(
@@ -217,12 +232,10 @@ namespace L1L2RedisCache
             }
         }
 
-        private DistributedCacheEntryOptions GetDistributedCacheEntryOptions(
-            string key)
+        private HashEntry[] GetHashEntries(string key)
         {
-            var distributedCacheEntryOptions = new DistributedCacheEntryOptions();
-
             var hashEntries = new HashEntry[] { };
+
             try
             {
                 hashEntries = Database.HashGetAll(
@@ -230,27 +243,7 @@ namespace L1L2RedisCache
             }
             catch (RedisServerException) { }
 
-            var absoluteExpirationHashEntry = hashEntries.FirstOrDefault(
-                hashEntry => hashEntry.Name == AbsoluteExpirationKey);
-            if (absoluteExpirationHashEntry != null &&
-                absoluteExpirationHashEntry.Value.HasValue &&
-                absoluteExpirationHashEntry.Value != NotPresent)
-            {
-                distributedCacheEntryOptions.AbsoluteExpiration = new DateTimeOffset(
-                    (long)absoluteExpirationHashEntry.Value, TimeSpan.Zero);
-            }
-
-            var slidingExpirationHashEntry = hashEntries.FirstOrDefault(
-                hashEntry => hashEntry.Name == SlidingExpirationKey);
-            if (slidingExpirationHashEntry != null &&
-                slidingExpirationHashEntry.Value.HasValue &&
-                slidingExpirationHashEntry.Value != NotPresent)
-            {
-                distributedCacheEntryOptions.SlidingExpiration = new TimeSpan(
-                    (long)slidingExpirationHashEntry.Value);
-            }
-
-            return distributedCacheEntryOptions;
+            return hashEntries;
         }
 
         private object GetOrCreateLock(
@@ -290,24 +283,40 @@ namespace L1L2RedisCache
                 });
         }
 
-        private void SetMemoryCache(
+        private object SetLock(
             string key,
-            byte[] value,
-            DistributedCacheEntryOptions distributedCacheEntryOptions = null)
+            object value,
+            DistributedCacheEntryOptions distributedCacheEntryOptions,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             var memoryCacheEntryOptions = new MemoryCacheEntryOptions();
 
-            if (distributedCacheEntryOptions == null)
-            {
-                distributedCacheEntryOptions = GetDistributedCacheEntryOptions(key);
-            }
+            memoryCacheEntryOptions.AbsoluteExpiration =
+                distributedCacheEntryOptions?.AbsoluteExpiration;
+            memoryCacheEntryOptions.AbsoluteExpirationRelativeToNow =
+                distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
+            memoryCacheEntryOptions.SlidingExpiration =
+                distributedCacheEntryOptions?.SlidingExpiration;
+
+            return MemoryCache.Set(
+                $"{LockKeyPrefix}{key}",
+                value,
+                memoryCacheEntryOptions);
+        }
+
+        private void SetMemoryCache(
+            string key,
+            byte[] value,
+            DistributedCacheEntryOptions distributedCacheEntryOptions)
+        {
+            var memoryCacheEntryOptions = new MemoryCacheEntryOptions();
 
             memoryCacheEntryOptions.AbsoluteExpiration =
-                distributedCacheEntryOptions.AbsoluteExpiration;
+                distributedCacheEntryOptions?.AbsoluteExpiration;
             memoryCacheEntryOptions.AbsoluteExpirationRelativeToNow =
-                distributedCacheEntryOptions.AbsoluteExpirationRelativeToNow;
+                distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
             memoryCacheEntryOptions.SlidingExpiration =
-                distributedCacheEntryOptions.SlidingExpiration;
+                distributedCacheEntryOptions?.SlidingExpiration;
 
             if (!memoryCacheEntryOptions.SlidingExpiration.HasValue)
             {
