@@ -12,6 +12,13 @@ namespace Microsoft.Extensions.DependencyInjection
             this IServiceCollection services,
             Action<RedisCacheOptions> setupAction)
         {
+            return AddL1L2RedisCache(services, setupAction);
+        }
+
+        public static IServiceCollection AddL1L2RedisCache(
+            this IServiceCollection services,
+            Action<RedisCacheOptions> setupAction)
+        {
             if (services == null)
             {
                 throw new ArgumentNullException(nameof(services));
