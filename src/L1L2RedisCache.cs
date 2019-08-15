@@ -51,6 +51,8 @@ namespace L1L2RedisCache
                 });
         }
 
+        private static object LockKeyLock { get; } = new object();
+
         public string Channel { get; }
         public IDatabase Database { get; }
         public IDistributedCache DistributedCache { get; }
@@ -250,37 +252,43 @@ namespace L1L2RedisCache
             string key,
             DistributedCacheEntryOptions distributedCacheEntryOptions)
         {
-            return MemoryCache.GetOrCreate(
-                $"{LockKeyPrefix}{key}",
-                cacheEntry =>
-                {
-                    cacheEntry.AbsoluteExpiration =
-                        distributedCacheEntryOptions.AbsoluteExpiration;
-                    cacheEntry.AbsoluteExpirationRelativeToNow =
-                        distributedCacheEntryOptions.AbsoluteExpirationRelativeToNow;
-                    cacheEntry.SlidingExpiration =
-                        distributedCacheEntryOptions.SlidingExpiration;
-                    return Task.FromResult(new object());
-                });
+            lock (LockKeyLock)
+            {
+                return MemoryCache.GetOrCreate(
+                    $"{LockKeyPrefix}{key}",
+                    cacheEntry =>
+                    {
+                        cacheEntry.AbsoluteExpiration =
+                            distributedCacheEntryOptions.AbsoluteExpiration;
+                        cacheEntry.AbsoluteExpirationRelativeToNow =
+                            distributedCacheEntryOptions.AbsoluteExpirationRelativeToNow;
+                        cacheEntry.SlidingExpiration =
+                            distributedCacheEntryOptions.SlidingExpiration;
+                        return Task.FromResult(new object());
+                    });
+            }
         }
 
-        private async Task<object> GetOrCreateLockAsync(
+        private Task<object> GetOrCreateLockAsync(
             string key,
             DistributedCacheEntryOptions distributedCacheEntryOptions,
             CancellationToken cancellationToken = default(CancellationToken))
         {
-            return await MemoryCache.GetOrCreateAsync(
-                $"{LockKeyPrefix}{key}",
-                cacheEntry =>
-                {
-                    cacheEntry.AbsoluteExpiration =
-                        distributedCacheEntryOptions?.AbsoluteExpiration;
-                    cacheEntry.AbsoluteExpirationRelativeToNow =
-                        distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
-                    cacheEntry.SlidingExpiration =
-                        distributedCacheEntryOptions?.SlidingExpiration;
-                    return Task.FromResult(new object());
-                });
+            lock (LockKeyLock)
+            {
+                return Task.FromResult(MemoryCache.GetOrCreate<object>(
+                    $"{LockKeyPrefix}{key}",
+                    cacheEntry =>
+                    {
+                        cacheEntry.AbsoluteExpiration =
+                            distributedCacheEntryOptions?.AbsoluteExpiration;
+                        cacheEntry.AbsoluteExpirationRelativeToNow =
+                            distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
+                        cacheEntry.SlidingExpiration =
+                            distributedCacheEntryOptions?.SlidingExpiration;
+                        return Task.FromResult(new object());
+                    }));
+            }
         }
 
         private object SetLock(
