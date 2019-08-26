@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "l1l2rediscache", "src\l1l2rediscache.csproj", "{71A8453B-1A5E-49ED-A9A2-17B7DC9A7407}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "l1l2rediscache", "src\L1L2RedisCache.csproj", "{71A8453B-1A5E-49ED-A9A2-17B7DC9A7407}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{542FBBBA-FA6D-4015-A3D6-CE172E014B1F}"
 EndProject
