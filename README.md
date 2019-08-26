@@ -9,7 +9,7 @@ L1L2RedisCache is heavily inspired by development insights provided over the pas
 L1L2RedisCache can be registered during startup with the following `IServiceCollection` extension method:
 
 ```
-services.AddL1L2DistributedRedisCache(options =>
+services.AddL1L2RedisCache(options =>
 {
     options.Configuration = "localhost";
     options.InstanceName = "Namespace";
