@@ -12,4 +12,4 @@ jobs:
       with:
         dotnet-version: 2.2.108
     - name: Build
-      run: dotnet build src/L1L2RedisCache.csproj -c Release
+      run: dotnet build -c Release
