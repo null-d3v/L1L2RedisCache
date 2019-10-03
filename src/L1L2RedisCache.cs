@@ -89,7 +89,7 @@ namespace L1L2RedisCache
                             distributedCacheEntryOptions);
                         SetLock(
                             key,
-                            value,
+                            localLock,
                             distributedCacheEntryOptions);
                     }
                 }
@@ -126,7 +126,7 @@ namespace L1L2RedisCache
                             distributedCacheEntryOptions);
                         SetLock(
                             key,
-                            value,
+                            localLock,
                             distributedCacheEntryOptions);
                     }
                 }
