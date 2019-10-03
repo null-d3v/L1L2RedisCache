@@ -2,9 +2,9 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using StackExchange.Redis;
 using System;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -39,8 +39,8 @@ namespace L1L2RedisCache
                 Channel,
                 (channel, message) =>
                 {
-                    var cacheMessage = JsonConvert
-                        .DeserializeObject<CacheMessage>(message.ToString());
+                    var cacheMessage = JsonSerializer
+                        .Deserialize<CacheMessage>(message.ToString());
                     if (cacheMessage.PublisherId != PublisherId)
                     {
                         MemoryCache.Remove(
@@ -156,7 +156,7 @@ namespace L1L2RedisCache
                     $"{KeyPrefix}{key}");
                 Subscriber.Publish(
                     Channel,
-                    JsonConvert.SerializeObject(
+                    JsonSerializer.Serialize(
                         new CacheMessage
                         {
                             Key = key,
@@ -178,7 +178,7 @@ namespace L1L2RedisCache
                     $"{KeyPrefix}{key}");
                 Subscriber.Publish(
                     Channel,
-                    JsonConvert.SerializeObject(
+                    JsonSerializer.Serialize(
                         new CacheMessage
                         {
                             Key = key,
@@ -201,7 +201,7 @@ namespace L1L2RedisCache
                     key, value, distributedCacheEntryOptions);
                 Subscriber.Publish(
                     Channel,
-                    JsonConvert.SerializeObject(
+                    JsonSerializer.Serialize(
                         new CacheMessage
                         {
                             Key = key,
@@ -225,7 +225,7 @@ namespace L1L2RedisCache
                     key, value, distributedCacheEntryOptions);
                 Subscriber.Publish(
                     Channel,
-                    JsonConvert.SerializeObject(
+                    JsonSerializer.Serialize(
                         new CacheMessage
                         {
                             Key = key,
