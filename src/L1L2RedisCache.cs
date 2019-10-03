@@ -265,7 +265,8 @@ namespace L1L2RedisCache
                         cacheEntry.SlidingExpiration =
                             distributedCacheEntryOptions.SlidingExpiration;
                         return Task.FromResult(new object());
-                    });
+                    }) ??
+                    new object();
             }
         }
 
@@ -287,7 +288,8 @@ namespace L1L2RedisCache
                         cacheEntry.SlidingExpiration =
                             distributedCacheEntryOptions?.SlidingExpiration;
                         return Task.FromResult(new object());
-                    }));
+                    }) ??
+                    new object());
             }
         }
 
