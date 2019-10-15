@@ -14,14 +14,17 @@ namespace L1L2RedisCache
     {
         public L1L2RedisCache(
             IConnectionMultiplexer connectionMultiplexer,
-            IMemoryCache memoryCache,
             Func<IDistributedCache> distributedCacheAccessor,
+            IOptions<JsonSerializerOptions> jsonSerializerOptions,
+            IMemoryCache memoryCache,
             IOptions<RedisCacheOptions> redisCacheOptionsAccessor)
         {
             MemoryCache = memoryCache ??
                 throw new ArgumentNullException(nameof(memoryCache));
             DistributedCache = distributedCacheAccessor() ??
                 throw new ArgumentNullException(nameof(distributedCacheAccessor));
+            JsonSerializerOptions = jsonSerializerOptions?.Value ??
+                throw new ArgumentNullException(nameof(jsonSerializerOptions));
             RedisCacheOptions = redisCacheOptionsAccessor?.Value ??
                 throw new ArgumentNullException(nameof(redisCacheOptionsAccessor));
 
@@ -40,7 +43,9 @@ namespace L1L2RedisCache
                 (channel, message) =>
                 {
                     var cacheMessage = JsonSerializer
-                        .Deserialize<CacheMessage>(message.ToString());
+                        .Deserialize<CacheMessage>(
+                            message.ToString(),
+                            JsonSerializerOptions);
                     if (cacheMessage.PublisherId != PublisherId)
                     {
                         MemoryCache.Remove(
@@ -56,6 +61,7 @@ namespace L1L2RedisCache
         public string Channel { get; }
         public IDatabase Database { get; }
         public IDistributedCache DistributedCache { get; }
+        public JsonSerializerOptions JsonSerializerOptions { get; }
         public string KeyPrefix { get; }
         public string LockKeyPrefix { get; }
         public IMemoryCache MemoryCache { get; }
@@ -161,7 +167,8 @@ namespace L1L2RedisCache
                         {
                             Key = key,
                             PublisherId = PublisherId,
-                        }));
+                        },
+                        JsonSerializerOptions));
                 MemoryCache.Remove($"{LockKeyPrefix}{key}");
             }
         }
@@ -183,7 +190,8 @@ namespace L1L2RedisCache
                         {
                             Key = key,
                             PublisherId = PublisherId,
-                        }));
+                        },
+                        JsonSerializerOptions));
                 MemoryCache.Remove($"{LockKeyPrefix}{key}");
             }
         }
@@ -206,7 +214,8 @@ namespace L1L2RedisCache
                         {
                             Key = key,
                             PublisherId = PublisherId,
-                        }));
+                        },
+                        JsonSerializerOptions));
             }
         }
 
@@ -230,7 +239,8 @@ namespace L1L2RedisCache
                         {
                             Key = key,
                             PublisherId = PublisherId,
-                        }));
+                        },
+                        JsonSerializerOptions));
             }
         }
 

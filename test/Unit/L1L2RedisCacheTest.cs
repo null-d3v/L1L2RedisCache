@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using StackExchange.Redis;
 using System;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -76,6 +77,9 @@ namespace L1L2RedisCache.Test.Unit
                 Options.Create<MemoryDistributedCacheOptions>(
                     new MemoryDistributedCacheOptions()));
 
+            var jsonSerializerOptions = Options.Create<JsonSerializerOptions>(
+                new JsonSerializerOptions());
+
             var redisCacheOptionsAccessor = Options.Create<RedisCacheOptions>(
                 new RedisCacheOptions
                 {
@@ -85,8 +89,9 @@ namespace L1L2RedisCache.Test.Unit
 
             L1L2Cache = new L1L2RedisCache(
                 mockConnectionMultiplexer.Object,
-                L1Cache,
                 new Func<IDistributedCache>(() => L2Cache),
+                jsonSerializerOptions,
+                L1Cache,
                 RedisCacheOptions);
         }
 

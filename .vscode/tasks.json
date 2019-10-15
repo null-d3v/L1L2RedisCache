@@ -21,7 +21,7 @@
             {
                 "reveal": "silent"
             },
-            "problemMatcher": [ ]
+            "problemMatcher": "$msCompile"
         }
     ]
 }
