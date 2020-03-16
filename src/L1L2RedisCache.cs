@@ -269,11 +269,11 @@ namespace L1L2RedisCache
                     cacheEntry =>
                     {
                         cacheEntry.AbsoluteExpiration =
-                            distributedCacheEntryOptions.AbsoluteExpiration;
+                            distributedCacheEntryOptions?.AbsoluteExpiration;
                         cacheEntry.AbsoluteExpirationRelativeToNow =
-                            distributedCacheEntryOptions.AbsoluteExpirationRelativeToNow;
+                            distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
                         cacheEntry.SlidingExpiration =
-                            distributedCacheEntryOptions.SlidingExpiration;
+                            distributedCacheEntryOptions?.SlidingExpiration;
                         return new object();
                     }) ??
                     new object();
