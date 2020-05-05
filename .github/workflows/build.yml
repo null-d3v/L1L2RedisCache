@@ -15,3 +15,5 @@ jobs:
             run: dotnet build -c Release src/L1L2RedisCache.csproj
           - name: Test
             run: dotnet test --no-build test/Unit/L1L2RedisCache.Test.Unit.csproj
+          - name: Test2
+            run: dotnet test --no-build test/Unit/L1L2RedisCache.Test.Unit.csproj
