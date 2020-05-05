@@ -1,0 +1,27 @@
+name: Deploy
+
+on:
+    release:
+        types:
+          - published
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v2
+          - name: Version
+            run: echo ::set-env name=VERSION::${GITHUB_REF:10}+${GITHUB_SHA::8}
+          - name: Setup
+            uses: actions/setup-dotnet@v1
+            with:
+                dotnet-version: '3.1.102'
+          - name: Build
+            run: dotnet build -c Release src/L1L2RedisCache.csproj
+          - name: Test
+            run: dotnet test --no-build test/Unit/L1L2RedisCache.Test.Unit.csproj
+          - name: Publish
+            uses: rohith/publish-nuget@v2
+            with:
+                PROJECT_FILE_PATH: src/L1L2RedisCache.csproj
+                VERSION_STATIC: ${{ env.VERSION }}
