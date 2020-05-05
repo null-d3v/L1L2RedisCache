@@ -110,8 +110,6 @@ namespace L1L2RedisCache.Test.Unit
 
             await L2Cache.SetAsync(key, value);
 
-            Assert.True(false);
-
             Assert.Null(
                 L1Cache.Get(prefixedKey));
             Assert.Equal(
