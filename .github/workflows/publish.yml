@@ -23,6 +23,7 @@ jobs:
           - name: Publish
             uses: rohith/publish-nuget@v2
             with:
+                INCLUDE_SYMBOLS: false
                 NUGET_KEY: ${{ secrets.NUGET_KEY }}
                 PROJECT_FILE_PATH: src/L1L2RedisCache.csproj
                 VERSION_STATIC: ${{ env.VERSION }}
