@@ -10,8 +10,8 @@ jobs:
           - name: Setup
             uses: actions/setup-dotnet@v1
             with:
-                dotnet-version: '3.1.102'
+                dotnet-version: '5.0.101'
           - name: Build
             run: dotnet build -c Release src/L1L2RedisCache.csproj
           - name: Test
-            run: dotnet test test/Unit/L1L2RedisCache.Test.Unit.csproj
+            run: dotnet test tests/Unit/L1L2RedisCache.Test.Unit.csproj

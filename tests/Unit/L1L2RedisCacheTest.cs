@@ -26,8 +26,8 @@ namespace L1L2RedisCache.Test.Unit
                 .Returns<RedisKey, CommandFlags>(
                     (k, cF) =>
                     {
-                        var key = ((string)k).Substring(
-                            RedisCacheOptions.InstanceName?.Length ?? 0);
+                        var key = ((string)k)[
+                            (RedisCacheOptions.InstanceName?.Length ?? 0)..];
                         var value = L2Cache.Get(key);
                         return new HashEntry[]
                         {
@@ -49,8 +49,8 @@ namespace L1L2RedisCache.Test.Unit
                 .Returns<RedisKey, CommandFlags>(
                     async (k, cF) =>
                     {
-                        var key = ((string)k).Substring(
-                            RedisCacheOptions.InstanceName?.Length ?? 0);
+                        var key = ((string)k)[
+                            (RedisCacheOptions.InstanceName?.Length ?? 0)..];
                         return await L2Cache.GetAsync(key) != null;
                     });
 
@@ -139,9 +139,6 @@ namespace L1L2RedisCache.Test.Unit
             Assert.Equal(
                 value,
                 L2Cache.Get(key));
-
-            var test1 = L2Cache.Get(key);
-            var test2 = L2Cache.Get(prefixedKey);
         }
 
         [Fact]

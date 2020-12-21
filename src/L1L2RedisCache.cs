@@ -33,7 +33,7 @@ namespace L1L2RedisCache
                 throw new ArgumentNullException(nameof(connectionMultiplexer));
 
             KeyPrefix = $"{RedisCacheOptions.InstanceName ?? string.Empty}";
-            LockKeyPrefix = $"{Guid.NewGuid().ToString()}.{KeyPrefix}";
+            LockKeyPrefix = $"{Guid.NewGuid()}.{KeyPrefix}";
 
             Channel = $"{KeyPrefix}Channel";
             PublisherId = Guid.NewGuid();
@@ -106,7 +106,7 @@ namespace L1L2RedisCache
 
         public async Task<byte[]> GetAsync(
             string key,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             var value = MemoryCache.Get(
                 $"{KeyPrefix}{key}") as byte[];
@@ -148,7 +148,7 @@ namespace L1L2RedisCache
 
         public async Task RefreshAsync(
             string key,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             await DistributedCache.RefreshAsync(key, cancellationToken);
         }
@@ -175,7 +175,7 @@ namespace L1L2RedisCache
 
         public async Task RemoveAsync(
             string key,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             lock (await GetOrCreateLockAsync(
                 key, null, cancellationToken))
@@ -223,7 +223,7 @@ namespace L1L2RedisCache
             string key,
             byte[] value,
             DistributedCacheEntryOptions distributedCacheEntryOptions,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             lock (await GetOrCreateLockAsync(
                 key, distributedCacheEntryOptions, cancellationToken))
@@ -283,11 +283,11 @@ namespace L1L2RedisCache
         private Task<object> GetOrCreateLockAsync(
             string key,
             DistributedCacheEntryOptions distributedCacheEntryOptions,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             lock (LockKeyLock)
             {
-                return Task.FromResult(MemoryCache.GetOrCreate<object>(
+                return Task.FromResult(MemoryCache.GetOrCreate(
                     $"{LockKeyPrefix}{key}",
                     cacheEntry =>
                     {
@@ -307,16 +307,17 @@ namespace L1L2RedisCache
             string key,
             object value,
             DistributedCacheEntryOptions distributedCacheEntryOptions,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
-            var memoryCacheEntryOptions = new MemoryCacheEntryOptions();
-
-            memoryCacheEntryOptions.AbsoluteExpiration =
-                distributedCacheEntryOptions?.AbsoluteExpiration;
-            memoryCacheEntryOptions.AbsoluteExpirationRelativeToNow =
-                distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
-            memoryCacheEntryOptions.SlidingExpiration =
-                distributedCacheEntryOptions?.SlidingExpiration;
+            var memoryCacheEntryOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpiration =
+                    distributedCacheEntryOptions?.AbsoluteExpiration,
+                AbsoluteExpirationRelativeToNow =
+                    distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow,
+                SlidingExpiration =
+                    distributedCacheEntryOptions?.SlidingExpiration,
+            };
 
             return MemoryCache.Set(
                 $"{LockKeyPrefix}{key}",
@@ -329,14 +330,15 @@ namespace L1L2RedisCache
             byte[] value,
             DistributedCacheEntryOptions distributedCacheEntryOptions)
         {
-            var memoryCacheEntryOptions = new MemoryCacheEntryOptions();
-
-            memoryCacheEntryOptions.AbsoluteExpiration =
-                distributedCacheEntryOptions?.AbsoluteExpiration;
-            memoryCacheEntryOptions.AbsoluteExpirationRelativeToNow =
-                distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
-            memoryCacheEntryOptions.SlidingExpiration =
-                distributedCacheEntryOptions?.SlidingExpiration;
+            var memoryCacheEntryOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpiration =
+                    distributedCacheEntryOptions?.AbsoluteExpiration,
+                AbsoluteExpirationRelativeToNow =
+                    distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow,
+                SlidingExpiration =
+                    distributedCacheEntryOptions?.SlidingExpiration,
+            };
 
             if (!memoryCacheEntryOptions.SlidingExpiration.HasValue)
             {
