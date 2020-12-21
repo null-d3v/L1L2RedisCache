@@ -26,4 +26,4 @@ jobs:
                 INCLUDE_SYMBOLS: false
                 NUGET_KEY: ${{ secrets.NUGET_KEY }}
                 PROJECT_FILE_PATH: src/L1L2RedisCache.csproj
-                VERSION_STATIC: ${{ VERSION }}
+                VERSION_STATIC: $VERSION
