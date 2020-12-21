@@ -11,7 +11,7 @@ jobs:
         steps:
           - uses: actions/checkout@v2
           - name: Version
-            run: echo ::set-env name=VERSION::${GITHUB_REF:10}+${GITHUB_SHA::8}
+            run: echo "VERSION=${GITHUB_REF:10}+${GITHUB_SHA::8}" >> $GITHUB_ENV
           - name: Setup
             uses: actions/setup-dotnet@v1
             with:
@@ -26,4 +26,4 @@ jobs:
                 INCLUDE_SYMBOLS: false
                 NUGET_KEY: ${{ secrets.NUGET_KEY }}
                 PROJECT_FILE_PATH: src/L1L2RedisCache.csproj
-                VERSION_STATIC: ${{ env.VERSION }}
+                VERSION_STATIC: ${{ $VERSION }}
