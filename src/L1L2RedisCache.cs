@@ -46,17 +46,18 @@ namespace L1L2RedisCache
                         .Deserialize<CacheMessage>(
                             message.ToString(),
                             JsonSerializerOptions);
-                    if (cacheMessage.PublisherId != PublisherId)
+                    if (cacheMessage?.PublisherId != PublisherId)
                     {
                         MemoryCache.Remove(
-                            $"{KeyPrefix}{cacheMessage.Key}");
+                            $"{KeyPrefix}{cacheMessage?.Key}");
                         MemoryCache.Remove(
-                            $"{LockKeyPrefix}{cacheMessage.Key}");
+                            $"{LockKeyPrefix}{cacheMessage?.Key}");
                     }
                 });
         }
 
-        private static object LockKeyLock { get; } = new object();
+        private static SemaphoreSlim KeySemaphore { get; } =
+            new SemaphoreSlim(1, 1);
 
         public string Channel { get; }
         public IDatabase Database { get; }
@@ -79,10 +80,11 @@ namespace L1L2RedisCache
                 if (Database.KeyExists(
                     $"{KeyPrefix}{key}"))
                 {
-                    var localLock = GetOrCreateLock(
+                    var semaphore = GetOrCreateLock(
                         key,
                         null);
-                    lock (localLock)
+                    semaphore.Wait();
+                    try
                     {
                         var hashEntries = GetHashEntries(key);
                         var distributedCacheEntryOptions = hashEntries
@@ -95,8 +97,12 @@ namespace L1L2RedisCache
                             distributedCacheEntryOptions);
                         SetLock(
                             key,
-                            localLock,
+                            semaphore,
                             distributedCacheEntryOptions);
+                    }
+                    finally
+                    {
+                        semaphore.Wait();
                     }
                 }
             }
@@ -116,12 +122,14 @@ namespace L1L2RedisCache
                 if (await Database.KeyExistsAsync(
                     $"{KeyPrefix}{key}"))
                 {
-                    var localLock = await GetOrCreateLockAsync(
+                    var semaphore = await GetOrCreateLockAsync(
                         key,
-                        null);
-                    lock (localLock)
+                        null,
+                        cancellationToken);
+                    await semaphore.WaitAsync(cancellationToken);
+                    try
                     {
-                        var hashEntries = GetHashEntries(key);
+                        var hashEntries = await GetHashEntriesAsync(key);
                         var distributedCacheEntryOptions = hashEntries
                             .GetDistributedCacheEntryOptions();
                         value = hashEntries.GetRedisValue();
@@ -132,8 +140,12 @@ namespace L1L2RedisCache
                             distributedCacheEntryOptions);
                         SetLock(
                             key,
-                            localLock,
+                            semaphore,
                             distributedCacheEntryOptions);
+                    }
+                    finally
+                    {
+                        semaphore.Release();
                     }
                 }
             }
@@ -155,7 +167,9 @@ namespace L1L2RedisCache
 
         public void Remove(string key)
         {
-            lock (GetOrCreateLock(key, null))
+            var semaphore = GetOrCreateLock(key, null);
+            semaphore.Wait();
+            try
             {
                 DistributedCache.Remove(key);
                 MemoryCache.Remove(
@@ -171,14 +185,20 @@ namespace L1L2RedisCache
                         JsonSerializerOptions));
                 MemoryCache.Remove($"{LockKeyPrefix}{key}");
             }
+            finally
+            {
+                semaphore.Release();
+            }
         }
 
         public async Task RemoveAsync(
             string key,
             CancellationToken cancellationToken = default)
         {
-            lock (await GetOrCreateLockAsync(
-                key, null, cancellationToken))
+            var semaphore = await GetOrCreateLockAsync(
+                key, null, cancellationToken);
+            await semaphore.WaitAsync(cancellationToken);
+            try
             {
                 DistributedCache.Remove(key);
                 MemoryCache.Remove(
@@ -193,6 +213,10 @@ namespace L1L2RedisCache
                         },
                         JsonSerializerOptions));
                 MemoryCache.Remove($"{LockKeyPrefix}{key}");
+            }
+            finally
+            {
+                semaphore.Release();
             }
         }
 
@@ -201,7 +225,10 @@ namespace L1L2RedisCache
             byte[] value,
             DistributedCacheEntryOptions distributedCacheEntryOptions)
         {
-            lock (GetOrCreateLock(key, distributedCacheEntryOptions))
+            var semaphore = GetOrCreateLock(
+                key, distributedCacheEntryOptions);
+            semaphore.Wait();
+            try
             {
                 DistributedCache.Set(
                     key, value, distributedCacheEntryOptions);
@@ -216,6 +243,10 @@ namespace L1L2RedisCache
                             PublisherId = PublisherId,
                         },
                         JsonSerializerOptions));
+            }
+            finally
+            {
+                semaphore.Release();
             }
         }
 
@@ -225,14 +256,19 @@ namespace L1L2RedisCache
             DistributedCacheEntryOptions distributedCacheEntryOptions,
             CancellationToken cancellationToken = default)
         {
-            lock (await GetOrCreateLockAsync(
-                key, distributedCacheEntryOptions, cancellationToken))
+            var semaphore = await GetOrCreateLockAsync(
+                key, distributedCacheEntryOptions, cancellationToken);
+            await semaphore.WaitAsync(cancellationToken);
+            try
             {
-                DistributedCache.Set(
-                    key, value, distributedCacheEntryOptions);
+                await DistributedCache.SetAsync(
+                    key,
+                    value,
+                    distributedCacheEntryOptions,
+                    cancellationToken);
                 SetMemoryCache(
                     key, value, distributedCacheEntryOptions);
-                Subscriber.Publish(
+                await Subscriber.PublishAsync(
                     Channel,
                     JsonSerializer.Serialize(
                         new CacheMessage
@@ -242,11 +278,15 @@ namespace L1L2RedisCache
                         },
                         JsonSerializerOptions));
             }
+            finally
+            {
+                semaphore.Release();
+            }
         }
 
         private HashEntry[] GetHashEntries(string key)
         {
-            var hashEntries = new HashEntry[] { };
+            var hashEntries = Array.Empty<HashEntry>();
 
             try
             {
@@ -258,11 +298,26 @@ namespace L1L2RedisCache
             return hashEntries;
         }
 
-        private object GetOrCreateLock(
-            string key,
-            DistributedCacheEntryOptions distributedCacheEntryOptions)
+        private async Task<HashEntry[]> GetHashEntriesAsync(string key)
         {
-            lock (LockKeyLock)
+            var hashEntries = Array.Empty<HashEntry>();
+
+            try
+            {
+                hashEntries = await Database.HashGetAllAsync(
+                    $"{KeyPrefix}{key}");
+            }
+            catch (RedisServerException) { }
+
+            return hashEntries;
+        }
+
+        private SemaphoreSlim GetOrCreateLock(
+            string key,
+            DistributedCacheEntryOptions? distributedCacheEntryOptions)
+        {
+            KeySemaphore.Wait();
+            try
             {
                 return MemoryCache.GetOrCreate(
                     $"{LockKeyPrefix}{key}",
@@ -274,20 +329,25 @@ namespace L1L2RedisCache
                             distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
                         cacheEntry.SlidingExpiration =
                             distributedCacheEntryOptions?.SlidingExpiration;
-                        return new object();
+                        return new SemaphoreSlim(0, 1);
                     }) ??
-                    new object();
+                    new SemaphoreSlim(0, 1);
+            }
+            finally
+            {
+                KeySemaphore.Release();
             }
         }
 
-        private Task<object> GetOrCreateLockAsync(
+        private async Task<SemaphoreSlim> GetOrCreateLockAsync(
             string key,
-            DistributedCacheEntryOptions distributedCacheEntryOptions,
+            DistributedCacheEntryOptions? distributedCacheEntryOptions,
             CancellationToken cancellationToken = default)
         {
-            lock (LockKeyLock)
+            await KeySemaphore.WaitAsync(cancellationToken);
+            try
             {
-                return Task.FromResult(MemoryCache.GetOrCreate(
+                return await MemoryCache.GetOrCreateAsync(
                     $"{LockKeyPrefix}{key}",
                     cacheEntry =>
                     {
@@ -297,17 +357,20 @@ namespace L1L2RedisCache
                             distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
                         cacheEntry.SlidingExpiration =
                             distributedCacheEntryOptions?.SlidingExpiration;
-                        return new object();
+                        return Task.FromResult(new SemaphoreSlim(1, 1));
                     }) ??
-                    new object());
+                    new SemaphoreSlim(1, 1);
+            }
+            finally
+            {
+                KeySemaphore.Release();
             }
         }
 
-        private object SetLock(
+        private SemaphoreSlim SetLock(
             string key,
-            object value,
-            DistributedCacheEntryOptions distributedCacheEntryOptions,
-            CancellationToken cancellationToken = default)
+            SemaphoreSlim semaphore,
+            DistributedCacheEntryOptions distributedCacheEntryOptions)
         {
             var memoryCacheEntryOptions = new MemoryCacheEntryOptions
             {
@@ -321,7 +384,7 @@ namespace L1L2RedisCache
 
             return MemoryCache.Set(
                 $"{LockKeyPrefix}{key}",
-                value,
+                semaphore,
                 memoryCacheEntryOptions);
         }
 

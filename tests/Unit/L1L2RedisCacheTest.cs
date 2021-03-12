@@ -27,7 +27,7 @@ namespace L1L2RedisCache.Test.Unit
                     (k, cF) =>
                     {
                         var key = ((string)k)[
-                            (RedisCacheOptions.InstanceName?.Length ?? 0)..];
+                            (RedisCacheOptions?.InstanceName?.Length ?? 0)..];
                         var value = L2Cache.Get(key);
                         return new HashEntry[]
                         {

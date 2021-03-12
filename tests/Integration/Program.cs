@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,7 +17,6 @@ namespace L1L2RedisCache.Test.Integration
         {
             Configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", true, true)
                 .Build();
 
             Services = new ServiceCollection();
@@ -40,7 +38,7 @@ namespace L1L2RedisCache.Test.Integration
             var l1l2Cache = serviceProvider
                 .GetService<IDistributedCache>();
             var l2Cache = serviceProvider
-                .GetService<Func<IDistributedCache>>()();
+                .GetService<Func<IDistributedCache>>()?.Invoke();
 
             await BasicPerformanceTest(l1l2Cache, l2Cache, 10000);
             Console.WriteLine();
@@ -87,8 +85,7 @@ namespace L1L2RedisCache.Test.Integration
             stopWatch.Restart();
             for (int index = 0; index < count; index++)
             {
-                var value = await l1l2Cache
-                    .GetStringAsync($"key{index}");
+                await l1l2Cache.GetStringAsync($"key{index}");
             }
             stopWatch.Stop();
             Console.WriteLine($"{stopWatch.ElapsedTicks} ticks for L1 propagation test");
@@ -97,7 +94,7 @@ namespace L1L2RedisCache.Test.Integration
             stopWatch.Restart();
             for (int index = 0; index < count; index++)
             {
-                var value = await l1l2Cache
+                await l1l2Cache
                     .GetStringAsync($"key{index}");
             }
             stopWatch.Stop();
@@ -132,7 +129,7 @@ namespace L1L2RedisCache.Test.Integration
             stopWatch.Restart();
             for (int index = 0; index < count; index++)
             {
-                var value = await l2Cache
+                await l2Cache
                     .GetStringAsync($"key{index}");
             }
             stopWatch.Stop();
@@ -154,7 +151,7 @@ namespace L1L2RedisCache.Test.Integration
             stopWatch.Restart();
             for (int index = 0; index < count; index++)
             {
-                var value = await l1l2Cache
+                await l1l2Cache
                     .GetStringAsync($"key{index}");
             }
             stopWatch.Stop();
