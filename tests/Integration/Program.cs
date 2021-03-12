@@ -31,7 +31,7 @@ namespace L1L2RedisCache.Test.Integration
         public static IConfigurationRoot Configuration { get; }
         public static IServiceCollection Services { get; }
 
-        public static async Task<int> Main(string[] args)
+        public static async Task<int> Main()
         {
             var serviceProvider = Services.BuildServiceProvider();
 
@@ -49,8 +49,8 @@ namespace L1L2RedisCache.Test.Integration
         }
 
         private static async Task BasicPerformanceTest(
-            IDistributedCache l1l2Cache,
-            IDistributedCache l2Cache,
+            IDistributedCache? l1l2Cache,
+            IDistributedCache? l2Cache,
             int count)
         {
             var stopWatch = new Stopwatch();
@@ -94,16 +94,15 @@ namespace L1L2RedisCache.Test.Integration
             stopWatch.Restart();
             for (int index = 0; index < count; index++)
             {
-                await l1l2Cache
-                    .GetStringAsync($"key{index}");
+                await l1l2Cache.GetStringAsync($"key{index}");
             }
             stopWatch.Stop();
             Console.WriteLine($"{stopWatch.ElapsedTicks} ticks for L1L2 get test");
         }
 
         private static async Task ParallelPerformanceTest(
-            IDistributedCache l1l2Cache,
-            IDistributedCache l2Cache,
+            IDistributedCache? l1l2Cache,
+            IDistributedCache? l2Cache,
             int count)
         {
             var stopWatch = new Stopwatch();
@@ -129,8 +128,7 @@ namespace L1L2RedisCache.Test.Integration
             stopWatch.Restart();
             for (int index = 0; index < count; index++)
             {
-                await l2Cache
-                    .GetStringAsync($"key{index}");
+                await l2Cache.GetStringAsync($"key{index}");
             }
             stopWatch.Stop();
             Console.WriteLine($"{stopWatch.ElapsedTicks} ticks for L2 get test");
@@ -151,8 +149,7 @@ namespace L1L2RedisCache.Test.Integration
             stopWatch.Restart();
             for (int index = 0; index < count; index++)
             {
-                await l1l2Cache
-                    .GetStringAsync($"key{index}");
+                await l1l2Cache.GetStringAsync($"key{index}");
             }
             stopWatch.Stop();
             Console.WriteLine($"{stopWatch.ElapsedTicks} ticks for L1L2 get test");

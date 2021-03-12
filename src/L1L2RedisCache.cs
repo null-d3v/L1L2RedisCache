@@ -70,7 +70,7 @@ namespace L1L2RedisCache
         public RedisCacheOptions RedisCacheOptions { get; }
         public ISubscriber Subscriber { get; }
 
-        public byte[] Get(string key)
+        public byte[]? Get(string key)
         {
             var value = MemoryCache.Get(
                 $"{KeyPrefix}{key}") as byte[];
@@ -102,7 +102,7 @@ namespace L1L2RedisCache
                     }
                     finally
                     {
-                        semaphore.Wait();
+                        semaphore.Release();
                     }
                 }
             }
@@ -110,7 +110,7 @@ namespace L1L2RedisCache
             return value;
         }
 
-        public async Task<byte[]> GetAsync(
+        public async Task<byte[]?> GetAsync(
             string key,
             CancellationToken cancellationToken = default)
         {
@@ -329,9 +329,9 @@ namespace L1L2RedisCache
                             distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
                         cacheEntry.SlidingExpiration =
                             distributedCacheEntryOptions?.SlidingExpiration;
-                        return new SemaphoreSlim(0, 1);
+                        return new SemaphoreSlim(1, 1);
                     }) ??
-                    new SemaphoreSlim(0, 1);
+                    new SemaphoreSlim(1, 1);
             }
             finally
             {
