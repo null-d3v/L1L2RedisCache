@@ -15,6 +15,19 @@ namespace L1L2RedisCache.Test.Unit
     {
         public L1L2RedisCacheTest()
         {
+            L1Cache = new MemoryCache(
+                Options.Create(new MemoryCacheOptions()));
+
+            L2Cache = new MemoryDistributedCache(
+                Options.Create(
+                    new MemoryDistributedCacheOptions()));
+
+            RedisCacheOptions = Options.Create(
+                new RedisCacheOptions
+                {
+                    InstanceName = "InstanceName.",
+                }).Value;
+
             var mockConnectionMultiplexer = new Mock<IConnectionMultiplexer>();
 
             var mockDatabase = new Mock<IDatabase>();
@@ -27,12 +40,28 @@ namespace L1L2RedisCache.Test.Unit
                     (k, cF) =>
                     {
                         var key = ((string)k)[
-                            (RedisCacheOptions.InstanceName?.Length ?? 0)..];
+                            (RedisCacheOptions?.InstanceName?.Length ?? 0)..];
                         var value = L2Cache.Get(key);
                         return new HashEntry[]
                         {
                             new HashEntry("data", value),
                         };
+                    });
+            mockDatabase
+                .Setup(
+                    d => d.HashGetAllAsync(
+                        It.IsAny<RedisKey>(),
+                        It.IsAny<CommandFlags>()))
+                .Returns<RedisKey, CommandFlags>(
+                    (k, cF) =>
+                    {
+                        var key = ((string)k)[
+                            (RedisCacheOptions?.InstanceName?.Length ?? 0)..];
+                        var value = L2Cache.Get(key);
+                        return Task.FromResult(new HashEntry[]
+                        {
+                            new HashEntry("data", value),
+                        });
                     });
             mockDatabase
                 .Setup(
@@ -69,23 +98,8 @@ namespace L1L2RedisCache.Test.Unit
                 .Setup(cM => cM.GetSubscriber(It.IsAny<object>()))
                 .Returns(mockSubscriber.Object);
 
-            L1Cache = new MemoryCache(
-                Options.Create<MemoryCacheOptions>(
-                    new MemoryCacheOptions()));
-
-            L2Cache = new MemoryDistributedCache(
-                Options.Create<MemoryDistributedCacheOptions>(
-                    new MemoryDistributedCacheOptions()));
-
-            var jsonSerializerOptions = Options.Create<JsonSerializerOptions>(
+            var jsonSerializerOptions = Options.Create(
                 new JsonSerializerOptions());
-
-            var redisCacheOptionsAccessor = Options.Create<RedisCacheOptions>(
-                new RedisCacheOptions
-                {
-                    InstanceName = "InstanceName.",
-                });
-            RedisCacheOptions = redisCacheOptionsAccessor.Value;
 
             L1L2Cache = new L1L2RedisCache(
                 mockConnectionMultiplexer.Object,

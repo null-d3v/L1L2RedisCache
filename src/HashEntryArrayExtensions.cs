@@ -24,8 +24,7 @@ namespace L1L2RedisCache
 
             var absoluteExpirationHashEntry = hashEntries.FirstOrDefault(
                 hashEntry => hashEntry.Name == AbsoluteExpirationKey);
-            if (absoluteExpirationHashEntry != null &&
-                absoluteExpirationHashEntry.Value.HasValue &&
+            if (absoluteExpirationHashEntry.Value.HasValue &&
                 absoluteExpirationHashEntry.Value != NotPresent)
             {
                 distributedCacheEntryOptions.AbsoluteExpiration = new DateTimeOffset(
@@ -34,8 +33,7 @@ namespace L1L2RedisCache
 
             var slidingExpirationHashEntry = hashEntries.FirstOrDefault(
                 hashEntry => hashEntry.Name == SlidingExpirationKey);
-            if (slidingExpirationHashEntry != null &&
-                slidingExpirationHashEntry.Value.HasValue &&
+            if (slidingExpirationHashEntry.Value.HasValue &&
                 slidingExpirationHashEntry.Value != NotPresent)
             {
                 distributedCacheEntryOptions.SlidingExpiration = new TimeSpan(
