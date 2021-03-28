@@ -1,6 +1,6 @@
 # L1L2RedisCache
 
-L1L2RedisCache is an implementation of [`IDistributedCache`](https://github.com/aspnet/Caching/blob/master/src/Microsoft.Extensions.Caching.Abstractions/IDistributedCache.cs) with a strong focus on performance. It leverages [`IMemoryCache`](https://github.com/aspnet/Caching/blob/master/src/Microsoft.Extensions.Caching.Abstractions/IMemoryCache.cs) as a level 1 cache and [`RedisCache`](https://github.com/aspnet/Caching/blob/master/src/Microsoft.Extensions.Caching.Redis/RedisCache.cs) as a level 2 cache, with level 1 evictions being managed via [Redis Pub/Sub](https://redis.io/topics/pubsub).
+L1L2RedisCache is an implementation of [`IDistributedCache`](https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Caching.Abstractions/src/IDistributedCache.cs) with a strong focus on performance. It leverages [`IMemoryCache`](https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Caching.Abstractions/src/IMemoryCache.cs) as a level 1 cache and [`RedisCache`](https://github.com/dotnet/aspnetcore/blob/main/src/Caching/StackExchangeRedis/src/RedisCache.cs) as a level 2 cache, with level 1 evictions being managed via [Redis Pub/Sub](https://redis.io/topics/pubsub).
 
 L1L2RedisCache is heavily inspired by development insights provided over the past several years by [StackOverflow](https://stackoverflow.com/). It attempts to simplify those concepts into a performant `IDistributedCache` that can be more generally applied.
 
@@ -16,7 +16,7 @@ services.AddL1L2RedisCache(options =>
 });
 ```
 
-The `IOptions` used is [`RedisCacheOptions`](https://github.com/aspnet/Caching/blob/master/src/Microsoft.Extensions.Caching.Redis/RedisCacheOptions.cs), as there is a direct dependency on `Microsoft.Extensions.Caching.Redis`.
+The `IOptions` used is [`RedisCacheOptions`](https://github.com/dotnet/aspnetcore/blob/main/src/Caching/StackExchangeRedis/src/RedisCacheOptions.cs), as there is a direct dependency on `Microsoft.Extensions.Caching.Redis`.
 
 It is intended that L1L12RedisCache then be simply used via `IDistributedCache` dependency injection.
 
