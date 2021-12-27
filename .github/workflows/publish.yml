@@ -24,8 +24,6 @@ jobs:
           - name: Build
             run: dotnet build -c Release
           - name: Test
-            env:
-                L1L2RedisCache__Configuration: redis
             run: dotnet test
           - name: Publish
             uses: rohith/publish-nuget@v2
