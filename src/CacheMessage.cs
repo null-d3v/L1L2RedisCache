@@ -1,10 +1,17 @@
-﻿using System;
+﻿namespace L1L2RedisCache;
 
-namespace L1L2RedisCache
+/// <summary>
+/// A Redis pub/sub message indicating a cache value has changed.
+/// </summary>
+public class CacheMessage
 {
-    public class CacheMessage
-    {
-        public string? Key { get; set; }
-        public Guid PublisherId { get; set; }
-    }
+    /// <summary>
+    /// The cache key of the value that has changed.
+    /// </summary>
+    public string? Key { get; set; }
+
+    /// <summary>
+    /// The unique publisher identifier  of the cache that changed the value.
+    /// </summary>
+    public Guid PublisherId { get; set; }
 }
