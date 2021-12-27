@@ -5,11 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using Xunit;
 
-namespace L1L2RedisCache.Test.System;
+namespace L1L2RedisCache.Tests.System;
 
-public class PerformanceTest
+public class PerformanceTests
 {
-    public PerformanceTest()
+    public PerformanceTests()
     {
         var configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json")

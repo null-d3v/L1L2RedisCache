@@ -7,9 +7,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "l1l2rediscache", "src\L1L2R
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{542FBBBA-FA6D-4015-A3D6-CE172E014B1F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "L1L2RedisCache.Test.Unit", "tests\Unit\L1L2RedisCache.Test.Unit.csproj", "{8791FCF7-078D-44A5-AC59-C7C2CE469D3F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "L1L2RedisCache.Tests.Unit", "tests\Unit\L1L2RedisCache.Tests.Unit.csproj", "{8791FCF7-078D-44A5-AC59-C7C2CE469D3F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "L1L2RedisCache.Test.System", "tests\System\L1L2RedisCache.Test.System.csproj", "{A0078F37-4108-43E7-A57E-613FA5965771}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "L1L2RedisCache.Tests.System", "tests\System\L1L2RedisCache.Tests.System.csproj", "{A0078F37-4108-43E7-A57E-613FA5965771}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

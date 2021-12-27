@@ -4,11 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Xunit;
 
-namespace L1L2RedisCache.Test.System;
+namespace L1L2RedisCache.Tests.System;
 
-public class MessagingTest
+public class MessagingTests
 {
-    public MessagingTest()
+    public MessagingTests()
     {
         Configuration = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json")

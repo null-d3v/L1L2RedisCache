@@ -6,11 +6,11 @@ using StackExchange.Redis;
 using System.Text.Json;
 using Xunit;
 
-namespace L1L2RedisCache.Test.Unit;
+namespace L1L2RedisCache.Tests.Unit;
 
-public class L1L2RedisCacheTest
+public class L1L2RedisCacheTests
 {
-    public L1L2RedisCacheTest()
+    public L1L2RedisCacheTests()
     {
         L1Cache = new MemoryCache(
             Options.Create(new MemoryCacheOptions()));
