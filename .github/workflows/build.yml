@@ -19,4 +19,4 @@ jobs:
           - name: Test
             env:
                 L1L2RedisCache__Configuration: redis
-            run: dotnet test --no-build
+            run: dotnet test
