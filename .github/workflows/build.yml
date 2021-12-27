@@ -18,5 +18,5 @@ jobs:
             run: dotnet build -c Release
           - name: Test
             env:
-                POSTGRES_HOST: postgres
+                L1L2RedisCache__Configuration: redis
             run: dotnet test --no-build

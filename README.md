@@ -18,11 +18,11 @@ services.AddL1L2RedisCache(options =>
 });
 ```
 
-The options used are an extension of the standard `RedisCache` [`RedisCacheOptions`](https://github.com/dotnet/aspnetcore/blob/main/src/Caching/StackExchangeRedis/src/RedisCacheOptions.cs).
+`L1L2RedisCache` options are an extension of the standard `RedisCache` [`RedisCacheOptions`](https://github.com/dotnet/aspnetcore/blob/main/src/Caching/StackExchangeRedis/src/RedisCacheOptions.cs). The following additional customizations are supported:
 
 ### MessagingType
 
-Use standard `L1L2RedisCache` [pub/sub](https://redis.io/topics/pubsub) messages for L1 memory cache eviction. This requires no customization of the Redis server.
+The type of messaging system to use for L1 memory cache eviction.
 
 | MessagingType | Description | Suggestion |
 | - | - | - |

@@ -106,9 +106,9 @@ public class L1L2RedisCacheTest
             new JsonSerializerOptions());
 
         L1L2Cache = new L1L2RedisCache(
-            new Func<IDistributedCache>(() => L2Cache),
-            L1L2RedisCacheOptions,
             L1Cache,
+            L1L2RedisCacheOptions,
+            new Func<IDistributedCache>(() => L2Cache),
             mockMessagePublisher.Object,
             mockMessageSubscriber.Object);
     }
