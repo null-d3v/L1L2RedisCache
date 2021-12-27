@@ -5,13 +5,18 @@ on: push
 jobs:
     build:
         runs-on: ubuntu-latest
+        services:
+            redis:
+                image: redis
         steps:
           - uses: actions/checkout@v2
           - name: Setup
             uses: actions/setup-dotnet@v1
             with:
-                dotnet-version: '5.0.101'
+                dotnet-version: 6.0.x
           - name: Build
-            run: dotnet build -c Release src/L1L2RedisCache.csproj
+            run: dotnet build -c Release
           - name: Test
-            run: dotnet test tests/Unit/L1L2RedisCache.Test.Unit.csproj
+            env:
+                POSTGRES_HOST: postgres
+            run: dotnet test --no-build

@@ -1,4 +1,4 @@
-name: Deploy
+name: Publish
 
 on:
     release:
@@ -6,8 +6,11 @@ on:
           - published
 
 jobs:
-    deploy:
+    publish:
         runs-on: ubuntu-latest
+        services:
+            redis:
+                image: redis
         steps:
           - uses: actions/checkout@v2
           - name: Version
@@ -15,11 +18,13 @@ jobs:
           - name: Setup
             uses: actions/setup-dotnet@v1
             with:
-                dotnet-version: '5.0.101'
+                dotnet-version: 6.0.x
           - name: Build
-            run: dotnet build -c Release src/L1L2RedisCache.csproj
+            run: dotnet build -c Release
           - name: Test
-            run: dotnet test --no-build tests/Unit/L1L2RedisCache.Test.Unit.csproj
+            env:
+                L1L2RedisCache__Configuration: redis
+            run: dotnet test --no-build
           - name: Publish
             uses: rohith/publish-nuget@v2
             with:
