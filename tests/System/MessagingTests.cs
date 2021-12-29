@@ -85,7 +85,7 @@ public class MessagingTests
                     .GetStringAsync(key));
 
             await primaryL1L2Cache.RemoveAsync(key);
-            await Task.Delay(10);
+            await Task.Delay(25);
 
             Assert.Null(
                 await secondaryL1L2Cache
