@@ -46,7 +46,7 @@ public class PerformanceTests
         int iterations)
     {
         Stopwatch.Restart();
-        for (int iteration = 1; iteration <= iterations; iteration++)
+        for (var iteration = 1; iteration <= iterations; iteration++)
         {
             await L2Cache.SetStringAsync(
                 $"Performance:{iteration}",
@@ -61,7 +61,7 @@ public class PerformanceTests
         var l2SetTicks = Stopwatch.ElapsedTicks;
 
         Stopwatch.Restart();
-        for (int iteration = 1; iteration <= iterations; iteration++)
+        for (var iteration = 1; iteration <= iterations; iteration++)
         {
             await L1L2Cache.GetStringAsync(
                 $"Performance:{iteration}");
@@ -70,7 +70,7 @@ public class PerformanceTests
         var l1L2GetPropagationTicks = Stopwatch.ElapsedTicks;
 
         Stopwatch.Restart();
-        for (int iteration = 1; iteration <= iterations; iteration++)
+        for (var iteration = 1; iteration <= iterations; iteration++)
         {
             await L1L2Cache.SetStringAsync(
                 $"Performance:{iteration}",
@@ -85,7 +85,7 @@ public class PerformanceTests
         var l1L2SetTicks = Stopwatch.ElapsedTicks;
 
         Stopwatch.Restart();
-        for (int iteration = 1; iteration <= iterations; iteration++)
+        for (var iteration = 1; iteration <= iterations; iteration++)
         {
             await L2Cache.GetStringAsync(
                 $"Performance:{iteration}");
@@ -94,7 +94,7 @@ public class PerformanceTests
         var l2GetTicks = Stopwatch.ElapsedTicks;
 
         Stopwatch.Restart();
-        for (int iteration = 1; iteration <= iterations; iteration++)
+        for (var iteration = 1; iteration <= iterations; iteration++)
         {
             await L1L2Cache.GetStringAsync(
                 $"Performance:{iteration}");

@@ -25,11 +25,12 @@ public class MessagingTests
     public IConfiguration Configuration { get; }
     public IDictionary<MessagingType, string> NotifyKeyspaceEventsConfig { get; }
 
-    [InlineData(MessagingType.Default)]
-    [InlineData(MessagingType.KeyeventNotifications)]
-    [InlineData(MessagingType.KeyspaceNotifications)]
+    [InlineData(100, MessagingType.Default)]
+    [InlineData(100, MessagingType.KeyeventNotifications)]
+    [InlineData(100, MessagingType.KeyspaceNotifications)]
     [Theory]
     public async Task MessagingType_Test(
+        int iterations,
         MessagingType messagingType)
     {
         var primaryServices = new ServiceCollection();
@@ -70,22 +71,25 @@ public class MessagingTests
             .BuildServiceProvider()
             .GetRequiredService<IDistributedCache>();
 
-        var key = Guid.NewGuid().ToString();
-        var value = "value";
+        for (var iteration = 0; iteration < iterations; iteration++)
+        {
+            var key = Guid.NewGuid().ToString();
+            var value = Guid.NewGuid().ToString();
 
-        await primaryL1L2Cache.SetStringAsync(
-            key, value);
+            await primaryL1L2Cache.SetStringAsync(
+                key, value);
 
-        Assert.Equal(
-            value,
-            await secondaryL1L2Cache
-                .GetStringAsync(key));
+            Assert.Equal(
+                value,
+                await secondaryL1L2Cache
+                    .GetStringAsync(key));
 
-        await primaryL1L2Cache.RemoveAsync(key);
-        await Task.Delay(1000);
+            await primaryL1L2Cache.RemoveAsync(key);
+            await Task.Delay(10);
 
-        Assert.Null(
-            await secondaryL1L2Cache
-                .GetStringAsync(key));
+            Assert.Null(
+                await secondaryL1L2Cache
+                    .GetStringAsync(key));
+        }
     }
 }
