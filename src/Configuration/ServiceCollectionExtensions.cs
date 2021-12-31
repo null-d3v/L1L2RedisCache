@@ -72,8 +72,47 @@ public static class ServiceCollectionExtensions
                 () => new RedisCache(
                     provider.GetService<IOptions<L1L2RedisCacheOptions>>())));
         services.AddSingleton<IDistributedCache, L1L2RedisCache.L1L2RedisCache>();
-        services.AddSingleton<IMessagePublisher, MessagePublisher>();
-        services.AddSingleton<IMessageSubscriber, MessageSubscriber>();
+        services.AddSingleton<IConfigurationVerifier, ConfigurationVerifier>();
+
+        services.AddSingleton<DefaultMessagePublisher>();
+        services.AddSingleton<NoopMessagePublisher>();
+        services.AddSingleton<IMessagePublisher>(
+            serviceProvider =>
+            {
+                var options = serviceProvider
+                    .GetRequiredService<IOptions<L1L2RedisCacheOptions>>()
+                    .Value;
+
+                return options.MessagingType switch
+                {
+                    MessagingType.Default =>
+                        serviceProvider.GetRequiredService<DefaultMessagePublisher>(),
+                    _ =>
+                        serviceProvider.GetRequiredService<NoopMessagePublisher>(),
+                };
+            });
+
+        services.AddSingleton<DefaultMessageSubscriber>();
+        services.AddSingleton<KeyeventMessageSubscriber>();
+        services.AddSingleton<KeyspaceMessageSubscriber>();
+        services.AddSingleton<IMessageSubscriber>(
+            serviceProvider =>
+            {
+                var options = serviceProvider
+                    .GetRequiredService<IOptions<L1L2RedisCacheOptions>>()
+                    .Value;
+
+                return options.MessagingType switch
+                {
+                    MessagingType.Default =>
+                        serviceProvider.GetRequiredService<DefaultMessageSubscriber>(),
+                    MessagingType.KeyeventNotifications =>
+                        serviceProvider.GetRequiredService<KeyeventMessageSubscriber>(),
+                    MessagingType.KeyspaceNotifications =>
+                        serviceProvider.GetRequiredService<KeyspaceMessageSubscriber>(),
+                    _ => throw new NotImplementedException(),
+                };
+            });
 
         return services;
     }
