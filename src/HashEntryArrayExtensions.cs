@@ -13,11 +13,6 @@ internal static class HashEntryArrayExtensions
     internal static DistributedCacheEntryOptions GetDistributedCacheEntryOptions(
         this HashEntry[] hashEntries)
     {
-        if (hashEntries == null)
-        {
-            throw new ArgumentNullException(nameof(hashEntries));
-        }
-
         var distributedCacheEntryOptions = new DistributedCacheEntryOptions();
 
         var absoluteExpirationHashEntry = hashEntries.FirstOrDefault(
@@ -44,11 +39,6 @@ internal static class HashEntryArrayExtensions
     internal static RedisValue GetRedisValue(
         this HashEntry[] hashEntries)
     {
-        if (hashEntries == null)
-        {
-            throw new ArgumentNullException(nameof(hashEntries));
-        }
-
         var dataHashEntry = hashEntries.FirstOrDefault(
             hashEntry => hashEntry.Name == DataKey);
 

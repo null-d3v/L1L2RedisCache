@@ -2,7 +2,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
-using System.Text.Json;
 
 namespace L1L2RedisCache;
 

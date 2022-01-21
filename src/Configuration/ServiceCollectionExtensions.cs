@@ -31,15 +31,6 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         Action<L1L2RedisCacheOptions> setupAction)
     {
-        if (services == null)
-        {
-            throw new ArgumentNullException(nameof(services));
-        }
-        if (setupAction == null)
-        {
-            throw new ArgumentNullException(nameof(setupAction));
-        }
-
         var l1L2RedisCacheOptions = new L1L2RedisCacheOptions();
         setupAction.Invoke(l1L2RedisCacheOptions);
 
