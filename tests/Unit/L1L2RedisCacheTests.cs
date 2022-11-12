@@ -36,7 +36,7 @@ public class L1L2RedisCacheTests
             .Returns<RedisKey, CommandFlags>(
                 (k, cF) =>
                 {
-                    var key = ((string)k)[
+                    var key = (k.ToString())[
                         (L1L2RedisCacheOptions?.InstanceName?.Length ?? 0)..];
                     var value = L2Cache.Get(key);
                     return new HashEntry[]
@@ -52,7 +52,7 @@ public class L1L2RedisCacheTests
             .Returns<RedisKey, CommandFlags>(
                 (k, cF) =>
                 {
-                    var key = ((string)k)[
+                    var key = (k.ToString())[
                         (L1L2RedisCacheOptions?.InstanceName?.Length ?? 0)..];
                     var value = L2Cache.Get(key);
                     return Task.FromResult(new HashEntry[]
@@ -66,7 +66,7 @@ public class L1L2RedisCacheTests
                     It.IsAny<RedisKey>(),
                     It.IsAny<CommandFlags>()))
             .Returns<RedisKey, CommandFlags>(
-                (k, cF) => L2Cache.Get(k) != null);
+                (k, cF) => L2Cache.Get(k.ToString()) != null);
         mockDatabase
             .Setup(
                 d => d.KeyExistsAsync(
@@ -75,7 +75,7 @@ public class L1L2RedisCacheTests
             .Returns<RedisKey, CommandFlags>(
                 async (k, cF) =>
                 {
-                    var key = ((string)k)[
+                    var key = (k.ToString())[
                         (L1L2RedisCacheOptions.InstanceName?.Length ?? 0)..];
                     return await L2Cache.GetAsync(key) != null;
                 });

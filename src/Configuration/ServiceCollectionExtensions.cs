@@ -15,18 +15,6 @@ public static class ServiceCollectionExtensions
     /// Adds L1L2RedisCache distributed caching services to the specified <c>IServiceCollection</c>.
     /// </summary>
     /// <returns>The <c>IServiceCollection</c> so that additional calls can be chained.</returns>
-    [Obsolete("Use AddL1L2RedisCache instead.")]
-    public static IServiceCollection AddL1L2DistributedRedisCache(
-        this IServiceCollection services,
-        Action<L1L2RedisCacheOptions> setupAction)
-    {
-        return AddL1L2RedisCache(services, setupAction);
-    }
-
-    /// <summary>
-    /// Adds L1L2RedisCache distributed caching services to the specified <c>IServiceCollection</c>.
-    /// </summary>
-    /// <returns>The <c>IServiceCollection</c> so that additional calls can be chained.</returns>
     public static IServiceCollection AddL1L2RedisCache(
         this IServiceCollection services,
         Action<L1L2RedisCacheOptions> setupAction)
@@ -48,7 +36,7 @@ public static class ServiceCollectionExtensions
                                 ConnectionMultiplexer.Connect(
                                     options.ConfigurationOptions) as IConnectionMultiplexer);
                     }
-                    else
+                    else if (!string.IsNullOrEmpty(options.Configuration))
                     {
                         options.ConnectionMultiplexerFactory = () =>
                             Task.FromResult(
@@ -59,9 +47,9 @@ public static class ServiceCollectionExtensions
             });
         services.AddMemoryCache();
         services.AddSingleton(
-            provider => new Func<IDistributedCache>(
+            serviceProvider => new Func<IDistributedCache>(
                 () => new RedisCache(
-                    provider.GetService<IOptions<L1L2RedisCacheOptions>>())));
+                    serviceProvider.GetRequiredService<IOptions<L1L2RedisCacheOptions>>())));
         services.AddSingleton<IDistributedCache, L1L2RedisCache.L1L2RedisCache>();
         services.AddSingleton<IConfigurationVerifier, ConfigurationVerifier>();
 

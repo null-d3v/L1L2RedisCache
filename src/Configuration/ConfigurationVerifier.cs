@@ -23,13 +23,15 @@ internal class ConfigurationVerifier : IConfigurationVerifier
         try
         {
             var database = L1L2RedisCacheOptions
-                .ConnectionMultiplexerFactory()
+                .ConnectionMultiplexerFactory?
+                .Invoke()
                 .GetAwaiter()
                 .GetResult()
                 .GetDatabase(
                     L1L2RedisCacheOptions
                         .ConfigurationOptions?
-                        .DefaultDatabase ?? -1);
+                        .DefaultDatabase ?? -1) ??
+                throw new InvalidOperationException();
 
             var configValue = database
                 .Execute(
