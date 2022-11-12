@@ -28,13 +28,15 @@ public class L1L2RedisCache : IDistributedCache
 
         Database = new Lazy<IDatabase>(() =>
             L1L2RedisCacheOptions
-                .ConnectionMultiplexerFactory()
+                .ConnectionMultiplexerFactory?
+                .Invoke()
                 .GetAwaiter()
                 .GetResult()
                 .GetDatabase(
                     L1L2RedisCacheOptions
                         .ConfigurationOptions?
-                        .DefaultDatabase ?? -1));
+                        .DefaultDatabase ?? -1) ??
+                throw new InvalidOperationException());
 
         MessageSubscriber.Subscribe();
     }
@@ -100,7 +102,7 @@ public class L1L2RedisCache : IDistributedCache
 
                     SetMemoryCache(
                         key,
-                        value,
+                        value!,
                         distributedCacheEntryOptions);
                     SetLock(
                         key,
@@ -149,7 +151,7 @@ public class L1L2RedisCache : IDistributedCache
 
                     SetMemoryCache(
                         key,
-                        value,
+                        value!,
                         distributedCacheEntryOptions);
                     SetLock(
                         key,

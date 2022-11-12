@@ -49,7 +49,7 @@ public class MessagingTests
             .Value;
 
         var primaryDatabase = (await primaryL1L2CacheOptions
-            .ConnectionMultiplexerFactory())
+            .ConnectionMultiplexerFactory!.Invoke())
             .GetDatabase(
                 primaryL1L2CacheOptions
                     .ConfigurationOptions?

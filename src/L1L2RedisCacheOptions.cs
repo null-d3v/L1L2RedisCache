@@ -12,9 +12,7 @@ public class L1L2RedisCacheOptions :
     /// <summary>
     /// Initializes a new instance of L1L2RedisCacheOptions.
     /// </summary>
-    public L1L2RedisCacheOptions() : base()
-    {
-    }
+    public L1L2RedisCacheOptions() : base() { }
 
     /// <summary>
     /// Unique identifier for the operating instance.
@@ -29,7 +27,7 @@ public class L1L2RedisCacheOptions :
     /// <summary>
     /// A prefix to be applied to all cache keys.
     /// </summary>
-    public string KeyPrefix { get { return InstanceName; } }
+    public string KeyPrefix { get { return InstanceName ?? string.Empty; } }
 
     /// <summary>
     /// A prefix to be applied to all L1 lock cache keys.

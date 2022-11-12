@@ -15,10 +15,12 @@ internal class DefaultMessagePublisher : IMessagePublisher
 
         Subscriber = new Lazy<ISubscriber>(() =>
             L1L2RedisCacheOptions
-                .ConnectionMultiplexerFactory()
+                .ConnectionMultiplexerFactory?
+                .Invoke()
                 .GetAwaiter()
                 .GetResult()
-                .GetSubscriber());
+                .GetSubscriber() ??
+                throw new InvalidOperationException());
     }
 
     public JsonSerializerOptions JsonSerializerOptions { get; set; }

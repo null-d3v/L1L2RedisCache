@@ -7,7 +7,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/tests/integration/bin/Debug/net6.0/L1L2RedisCache.Test.Integration.dll",
+            "program": "${workspaceFolder}/tests/integration/bin/Debug/net7.0/L1L2RedisCache.Test.Integration.dll",
             "args": [],
             "cwd": "${workspaceFolder}/tests",
             "console": "internalConsole",

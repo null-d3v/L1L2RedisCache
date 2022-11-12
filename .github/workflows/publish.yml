@@ -14,13 +14,13 @@ jobs:
                 ports:
                   - 6379:6379
         steps:
-          - uses: actions/checkout@v2
+          - uses: actions/checkout@v3
           - name: Version
             run: echo "VERSION=${GITHUB_REF:10}+${GITHUB_SHA::8}" >> $GITHUB_ENV
           - name: Setup
-            uses: actions/setup-dotnet@v1
+            uses: actions/setup-dotnet@v3
             with:
-                dotnet-version: 6.0.x
+                dotnet-version: 7
           - name: Build
             run: dotnet build -c Release
           - name: Test
