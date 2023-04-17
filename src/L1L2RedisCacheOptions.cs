@@ -6,7 +6,7 @@ namespace L1L2RedisCache;
 /// <summary>
 /// Configuration options for <c>L1L2RedisCache</c>.
 /// </summary>
-public class L1L2RedisCacheOptions :
+public sealed class L1L2RedisCacheOptions :
     RedisCacheOptions, IOptions<L1L2RedisCacheOptions>
 {
     /// <summary>
@@ -22,17 +22,17 @@ public class L1L2RedisCacheOptions :
     /// <summary>
     /// The pub/sub channel name.
     /// </summary>
-    public string Channel { get { return $"{KeyPrefix}Channel"; } }
+    public string Channel => $"{KeyPrefix}Channel";
 
     /// <summary>
     /// A prefix to be applied to all cache keys.
     /// </summary>
-    public string KeyPrefix { get { return InstanceName ?? string.Empty; } }
+    public string KeyPrefix => InstanceName ?? string.Empty;
 
     /// <summary>
     /// A prefix to be applied to all L1 lock cache keys.
     /// </summary>
-    public string LockKeyPrefix { get { return $"{Id}:{KeyPrefix}"; } }
+    public string LockKeyPrefix => $"{Id}:{KeyPrefix}";
 
     /// <summary>
     /// The type of messaging to use for L1 memory cache eviction.
@@ -40,8 +40,5 @@ public class L1L2RedisCacheOptions :
     public MessagingType MessagingType { get; set; } =
         MessagingType.Default;
 
-    L1L2RedisCacheOptions IOptions<L1L2RedisCacheOptions>.Value
-    {
-        get { return this; }
-    }
+    L1L2RedisCacheOptions IOptions<L1L2RedisCacheOptions>.Value => this;
 }

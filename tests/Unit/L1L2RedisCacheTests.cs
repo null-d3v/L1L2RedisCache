@@ -52,7 +52,7 @@ public class L1L2RedisCacheTests
             .Returns<RedisKey, CommandFlags>(
                 (k, cF) =>
                 {
-                    var key = (k.ToString())[
+                    var key = k.ToString()[
                         (L1L2RedisCacheOptions?.InstanceName?.Length ?? 0)..];
                     var value = L2Cache.Get(key);
                     return Task.FromResult(new HashEntry[]
@@ -75,9 +75,11 @@ public class L1L2RedisCacheTests
             .Returns<RedisKey, CommandFlags>(
                 async (k, cF) =>
                 {
-                    var key = (k.ToString())[
+                    var key = k.ToString()[
                         (L1L2RedisCacheOptions.InstanceName?.Length ?? 0)..];
-                    return await L2Cache.GetAsync(key) != null;
+                    return await L2Cache
+                        .GetAsync(key)
+                        .ConfigureAwait(false) != null;
                 });
 
         var mockConnectionMultiplexer = new Mock<IConnectionMultiplexer>();
@@ -119,30 +121,34 @@ public class L1L2RedisCacheTests
     public IDistributedCache L2Cache { get; }
 
     [Fact]
-    public async Task Get_Propagation_Test()
+    public async Task GetPropagationTest()
     {
         var key = "key";
-        var value = new byte[] { 0x20, 0x20, 0x20, };
+        var value = "   "u8.ToArray();
 
         var prefixedKey = $"{L1L2RedisCacheOptions.InstanceName}{key}";
 
-        await L2Cache.SetAsync(key, value);
+        await L2Cache
+            .SetAsync(key, value)
+            .ConfigureAwait(false);
 
         Assert.Null(
             L1Cache.Get(prefixedKey));
         Assert.Equal(
             value,
-            await L1L2Cache.GetAsync(key));
+            await L1L2Cache
+                .GetAsync(key)
+                .ConfigureAwait(false));
         Assert.Equal(
             value,
             L1Cache.Get(prefixedKey));
     }
 
     [Fact]
-    public void Set_Test()
+    public void SetTest()
     {
         var key = "key";
-        var value = new byte[] { 0x20, 0x20, 0x20, };
+        var value = "   "u8.ToArray();
 
         var prefixedKey = $"{L1L2RedisCacheOptions.InstanceName}{key}";
 
@@ -160,10 +166,10 @@ public class L1L2RedisCacheTests
     }
 
     [Fact]
-    public void Set_Remove_Test()
+    public void SetRemoveTest()
     {
         var key = "key";
-        var value = new byte[] { 0x20, 0x20, 0x20, };
+        var value = "   "u8.ToArray();
 
         var prefixedKey = $"{L1L2RedisCacheOptions.InstanceName}{key}";
 
@@ -190,53 +196,71 @@ public class L1L2RedisCacheTests
     }
 
     [Fact]
-    public async Task SetAsync_Test()
+    public async Task SetAsyncTest()
     {
         var key = "key";
-        var value = new byte[] { 0x20, 0x20, 0x20, };
+        var value = "   "u8.ToArray();
 
         var prefixedKey = $"{L1L2RedisCacheOptions.InstanceName}{key}";
 
-        await L1L2Cache.SetAsync(key, value);
+        await L1L2Cache
+            .SetAsync(key, value)
+            .ConfigureAwait(false);
 
         Assert.Equal(
             value,
-            await L1L2Cache.GetAsync(key));
+            await L1L2Cache
+                .GetAsync(key)
+                .ConfigureAwait(false));
         Assert.Equal(
             value,
             L1Cache.Get(prefixedKey));
         Assert.Equal(
             value,
-            await L2Cache.GetAsync(key));
+            await L2Cache
+                .GetAsync(key)
+                .ConfigureAwait(false));
     }
 
     [Fact]
-    public async Task SetAsync_RemoveAsync_Test()
+    public async Task SetAsyncRemoveAsyncTest()
     {
         var key = "key";
-        var value = new byte[] { 0x20, 0x20, 0x20, };
+        var value = "   "u8.ToArray();
 
         var prefixedKey = $"{L1L2RedisCacheOptions.InstanceName}{key}";
 
-        await L1L2Cache.SetAsync(key, value);
+        await L1L2Cache
+            .SetAsync(key, value)
+            .ConfigureAwait(false);
 
         Assert.Equal(
             value,
-            await L1L2Cache.GetAsync(key));
+            await L1L2Cache
+                .GetAsync(key)
+                .ConfigureAwait(false));
         Assert.Equal(
             value,
             L1Cache.Get(prefixedKey));
         Assert.Equal(
             value,
-            await L2Cache.GetAsync(key));
+            await L2Cache
+                .GetAsync(key)
+                .ConfigureAwait(false));
 
-        await L1L2Cache.RemoveAsync(key);
+        await L1L2Cache
+            .RemoveAsync(key)
+            .ConfigureAwait(false);
 
         Assert.Null(
-            await L1L2Cache.GetAsync(key));
+            await L1L2Cache
+                .GetAsync(key)
+                .ConfigureAwait(false));
         Assert.Null(
             L1Cache.Get(prefixedKey));
         Assert.Null(
-            await L2Cache.GetAsync(key));
+            await L2Cache
+                .GetAsync(key)
+                .ConfigureAwait(false));
     }
 }

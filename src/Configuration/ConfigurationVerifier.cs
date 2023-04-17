@@ -1,8 +1,10 @@
 using Microsoft.Extensions.Options;
+using System.Diagnostics.CodeAnalysis;
 
 namespace L1L2RedisCache;
 
-internal class ConfigurationVerifier : IConfigurationVerifier
+internal sealed class ConfigurationVerifier :
+    IConfigurationVerifier
 {
     public ConfigurationVerifier(
         IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor)
@@ -12,9 +14,10 @@ internal class ConfigurationVerifier : IConfigurationVerifier
 
     public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; }
 
+    [SuppressMessage("Design", "CA1031")]
     public bool TryVerifyConfiguration(
         string config,
-        out Exception? error,
+        [MaybeNullWhen(true)] out Exception? error,
         params string[] expectedValues)
     {
         error = null;
@@ -42,7 +45,9 @@ internal class ConfigurationVerifier : IConfigurationVerifier
                 .ToString();
             foreach (var expectedValue in expectedValues)
             {
-                if (configValue?.Contains(expectedValue) != true)
+                if (configValue?.Contains(
+                        expectedValue,
+                        StringComparison.Ordinal) != true)
                 {
                     verified = false;
                 }

@@ -5,7 +5,8 @@ using System.Text.Json;
 
 namespace L1L2RedisCache;
 
-internal class DefaultMessageSubscriber : IMessageSubscriber
+internal sealed class DefaultMessageSubscriber :
+    IMessageSubscriber
 {
     public DefaultMessageSubscriber(
         IOptions<JsonSerializerOptions> jsonSerializerOptions,
