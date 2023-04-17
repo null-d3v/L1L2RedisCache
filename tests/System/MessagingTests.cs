@@ -29,7 +29,7 @@ public class MessagingTests
     [InlineData(100, MessagingType.KeyeventNotifications)]
     [InlineData(100, MessagingType.KeyspaceNotifications)]
     [Theory]
-    public async Task MessagingType_Test(
+    public async Task MessagingTypeTest(
         int iterations,
         MessagingType messagingType)
     {
@@ -49,16 +49,20 @@ public class MessagingTests
             .Value;
 
         var primaryDatabase = (await primaryL1L2CacheOptions
-            .ConnectionMultiplexerFactory!.Invoke())
+            .ConnectionMultiplexerFactory!
+            .Invoke()
+            .ConfigureAwait(false))
             .GetDatabase(
                 primaryL1L2CacheOptions
                     .ConfigurationOptions?
                     .DefaultDatabase ?? -1);
-        await primaryDatabase.ExecuteAsync(
-            "config",
-            "set",
-            "notify-keyspace-events",
-            NotifyKeyspaceEventsConfig[messagingType]);
+        await primaryDatabase
+            .ExecuteAsync(
+                "config",
+                "set",
+                "notify-keyspace-events",
+                NotifyKeyspaceEventsConfig[messagingType])
+            .ConfigureAwait(false);
 
         var secondaryServices = new ServiceCollection();
         secondaryServices.AddSingleton(Configuration);
@@ -76,20 +80,28 @@ public class MessagingTests
             var key = Guid.NewGuid().ToString();
             var value = Guid.NewGuid().ToString();
 
-            await primaryL1L2Cache.SetStringAsync(
-                key, value);
+            await primaryL1L2Cache
+                .SetStringAsync(
+                    key, value)
+                .ConfigureAwait(false);
 
             Assert.Equal(
                 value,
                 await secondaryL1L2Cache
-                    .GetStringAsync(key));
+                    .GetStringAsync(key)
+                    .ConfigureAwait(false));
 
-            await primaryL1L2Cache.RemoveAsync(key);
-            await Task.Delay(25);
+            await primaryL1L2Cache
+                .RemoveAsync(key)
+                .ConfigureAwait(false);
+            await Task
+                .Delay(25)
+                .ConfigureAwait(false);
 
             Assert.Null(
                 await secondaryL1L2Cache
-                    .GetStringAsync(key));
+                    .GetStringAsync(key)
+                    .ConfigureAwait(false));
         }
     }
 }

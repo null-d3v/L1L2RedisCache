@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace L1L2RedisCache;
 
@@ -20,6 +21,17 @@ public class L1L2RedisCache : IDistributedCache
         IMessagePublisher messagePublisher,
         IMessageSubscriber messageSubscriber)
     {
+        if (l1l2RedisCacheOptionsAccessor == null)
+        {
+            throw new ArgumentNullException(
+                nameof(l1l2RedisCacheOptionsAccessor));
+        }
+        if (l2CacheAccessor == null)
+        {
+            throw new ArgumentNullException(
+                nameof(l2CacheAccessor));
+        }
+
         L1Cache = l1Cache;
         L1L2RedisCacheOptions = l1l2RedisCacheOptionsAccessor.Value;
         L2Cache = l2CacheAccessor();
@@ -79,6 +91,7 @@ public class L1L2RedisCache : IDistributedCache
     /// </summary>
     /// <param name="key">A string identifying the requested value.</param>
     /// <returns>The located value or null.</returns>
+    [SuppressMessage("Reliability", "CA2000")]
     public byte[]? Get(string key)
     {
         var value = L1Cache.Get(
@@ -123,28 +136,34 @@ public class L1L2RedisCache : IDistributedCache
     /// Gets a value with the given key.
     /// </summary>
     /// <param name="key">A string identifying the requested value.</param>
-    /// <param name="cancellationToken">Optional. The System.Threading.CancellationToken used to propagate notifications that the operation should be canceled.</param>
+    /// <param name="token">Optional. The System.Threading.CancellationToken used to propagate notifications that the operation should be canceled.</param>
     /// <returns>The System.Threading.Tasks.Task that represents the asynchronous operation, containing the located value or null.</returns>
     public async Task<byte[]?> GetAsync(
         string key,
-        CancellationToken cancellationToken = default)
+        CancellationToken token = default)
     {
         var value = L1Cache.Get(
             $"{L1L2RedisCacheOptions.KeyPrefix}{key}") as byte[];
 
         if (value == null)
         {
-            if (await Database.Value.KeyExistsAsync(
-                $"{L1L2RedisCacheOptions.KeyPrefix}{key}"))
+            if (await Database.Value
+                    .KeyExistsAsync(
+                        $"{L1L2RedisCacheOptions.KeyPrefix}{key}")
+                    .ConfigureAwait(false))
             {
                 var semaphore = await GetOrCreateLockAsync(
                     key,
                     null,
-                    cancellationToken);
-                await semaphore.WaitAsync(cancellationToken);
+                    token)
+                    .ConfigureAwait(false);
+                await semaphore
+                    .WaitAsync(token)
+                    .ConfigureAwait(false);
                 try
                 {
-                    var hashEntries = await GetHashEntriesAsync(key);
+                    var hashEntries = await GetHashEntriesAsync(key)
+                        .ConfigureAwait(false);
                     var distributedCacheEntryOptions = hashEntries
                         .GetDistributedCacheEntryOptions();
                     value = hashEntries.GetRedisValue();
@@ -181,19 +200,22 @@ public class L1L2RedisCache : IDistributedCache
     /// Refreshes a value in the cache based on its key, resetting its sliding expiration timeout (if any).
     /// </summary>
     /// <param name="key">A string identifying the requested value.</param>
-    /// <param name="cancellationToken">Optional. The System.Threading.CancellationToken used to propagate notifications that the operation should be canceled.</param>
+    /// <param name="token">Optional. The System.Threading.CancellationToken used to propagate notifications that the operation should be canceled.</param>
     /// <returns>The System.Threading.Tasks.Task that represents the asynchronous operation.</returns>
     public async Task RefreshAsync(
         string key,
-        CancellationToken cancellationToken = default)
+        CancellationToken token = default)
     {
-        await L2Cache.RefreshAsync(key, cancellationToken);
+        await L2Cache
+            .RefreshAsync(key, token)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
     /// Removes the value with the given key.
     /// </summary>
     /// <param name="key">A string identifying the requested value.</param>
+    [SuppressMessage("Reliability", "CA2000")]
     public void Remove(string key)
     {
         var semaphore = GetOrCreateLock(key, null);
@@ -217,15 +239,20 @@ public class L1L2RedisCache : IDistributedCache
     /// Removes the value with the given key.
     /// </summary>
     /// <param name="key">A string identifying the requested value.</param>
-    /// <param name="cancellationToken">Optional. The System.Threading.CancellationToken used to propagate notifications that the operation should be canceled.</param>
+    /// <param name="token">Optional. The System.Threading.CancellationToken used to propagate notifications that the operation should be canceled.</param>
     /// <returns>The System.Threading.Tasks.Task that represents the asynchronous operation.</returns>
     public async Task RemoveAsync(
         string key,
-        CancellationToken cancellationToken = default)
+        CancellationToken token = default)
     {
         var semaphore = await GetOrCreateLockAsync(
-            key, null, cancellationToken);
-        await semaphore.WaitAsync(cancellationToken);
+            key,
+            null,
+            token)
+            .ConfigureAwait(false);
+        await semaphore
+            .WaitAsync(token)
+            .ConfigureAwait(false);
         try
         {
             L2Cache.Remove(key);
@@ -246,21 +273,22 @@ public class L1L2RedisCache : IDistributedCache
     /// </summary>
     /// <param name="key">A string identifying the requested value.</param>
     /// <param name="value">The value to set in the cache.</param>
-    /// <param name="distributedCacheEntryOptions">The cache options for the value.</param>
+    /// <param name="options">The cache options for the value.</param>
+    [SuppressMessage("Reliability", "CA2000")]
     public void Set(
         string key,
         byte[] value,
-        DistributedCacheEntryOptions distributedCacheEntryOptions)
+        DistributedCacheEntryOptions options)
     {
         var semaphore = GetOrCreateLock(
-            key, distributedCacheEntryOptions);
+            key, options);
         semaphore.Wait();
         try
         {
             L2Cache.Set(
-                key, value, distributedCacheEntryOptions);
+                key, value, options);
             SetMemoryCache(
-                key, value, distributedCacheEntryOptions);
+                key, value, options);
             MessagePublisher.Publish(key);
         }
         finally
@@ -274,29 +302,38 @@ public class L1L2RedisCache : IDistributedCache
     /// </summary>
     /// <param name="key">A string identifying the requested value.</param>
     /// <param name="value">The value to set in the cache.</param>
-    /// <param name="distributedCacheEntryOptions">The cache options for the value.</param>
-    /// <param name="cancellationToken">Optional. The System.Threading.CancellationToken used to propagate notifications that the operation should be canceled.</param>
+    /// <param name="options">The cache options for the value.</param>
+    /// <param name="token">Optional. The System.Threading.CancellationToken used to propagate notifications that the operation should be canceled.</param>
     /// <returns>The System.Threading.Tasks.Task that represents the asynchronous operation.</returns>
     public async Task SetAsync(
         string key,
         byte[] value,
-        DistributedCacheEntryOptions distributedCacheEntryOptions,
-        CancellationToken cancellationToken = default)
+        DistributedCacheEntryOptions options,
+        CancellationToken token = default)
     {
         var semaphore = await GetOrCreateLockAsync(
-            key, distributedCacheEntryOptions, cancellationToken);
-        await semaphore.WaitAsync(cancellationToken);
+            key,
+            options,
+            token)
+            .ConfigureAwait(false);
+        await semaphore
+            .WaitAsync(token)
+            .ConfigureAwait(false);
         try
         {
-            await L2Cache.SetAsync(
-                key,
-                value,
-                distributedCacheEntryOptions,
-                cancellationToken);
+            await L2Cache
+                .SetAsync(
+                    key,
+                    value,
+                    options,
+                    token)
+                .ConfigureAwait(false);
             SetMemoryCache(
-                key, value, distributedCacheEntryOptions);
-            await MessagePublisher.PublishAsync(
-                key, cancellationToken);
+                key, value, options);
+            await MessagePublisher
+                .PublishAsync(
+                    key, token)
+                .ConfigureAwait(false);
         }
         finally
         {
@@ -324,8 +361,10 @@ public class L1L2RedisCache : IDistributedCache
 
         try
         {
-            hashEntries = await Database.Value.HashGetAllAsync(
-                $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
+            hashEntries = await Database.Value
+                .HashGetAllAsync(
+                    $"{L1L2RedisCacheOptions.KeyPrefix}{key}")
+                .ConfigureAwait(false);
         }
         catch (RedisServerException) { }
 
@@ -359,26 +398,31 @@ public class L1L2RedisCache : IDistributedCache
         }
     }
 
+    [SuppressMessage("Reliability", "CA2000")]
     private async Task<SemaphoreSlim> GetOrCreateLockAsync(
         string key,
         DistributedCacheEntryOptions? distributedCacheEntryOptions,
         CancellationToken cancellationToken = default)
     {
-        await KeySemaphore.WaitAsync(cancellationToken);
+        await KeySemaphore
+            .WaitAsync(cancellationToken)
+            .ConfigureAwait(false);
         try
         {
-            return await L1Cache.GetOrCreateAsync(
-                $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}",
-                cacheEntry =>
-                {
-                    cacheEntry.AbsoluteExpiration =
-                        distributedCacheEntryOptions?.AbsoluteExpiration;
-                    cacheEntry.AbsoluteExpirationRelativeToNow =
-                        distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
-                    cacheEntry.SlidingExpiration =
-                        distributedCacheEntryOptions?.SlidingExpiration;
-                    return Task.FromResult(new SemaphoreSlim(1, 1));
-                }) ??
+            return await L1Cache
+                .GetOrCreateAsync(
+                    $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}",
+                    cacheEntry =>
+                    {
+                        cacheEntry.AbsoluteExpiration =
+                            distributedCacheEntryOptions?.AbsoluteExpiration;
+                        cacheEntry.AbsoluteExpirationRelativeToNow =
+                            distributedCacheEntryOptions?.AbsoluteExpirationRelativeToNow;
+                        cacheEntry.SlidingExpiration =
+                            distributedCacheEntryOptions?.SlidingExpiration;
+                        return Task.FromResult(new SemaphoreSlim(1, 1));
+                    })
+                .ConfigureAwait(false) ??
                 new SemaphoreSlim(1, 1);
         }
         finally

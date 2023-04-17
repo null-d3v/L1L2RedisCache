@@ -42,20 +42,22 @@ public class PerformanceTests
 
     [InlineData(10000)]
     [Theory]
-    public async Task Performance_Test(
+    public async Task PerformanceTest(
         int iterations)
     {
         Stopwatch.Restart();
         for (var iteration = 1; iteration <= iterations; iteration++)
         {
-            await L2Cache.SetStringAsync(
-                $"Performance:{iteration}",
-                "Value",
-                new DistributedCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow =
-                        TimeSpan.FromMinutes(5),
-                });
+            await L2Cache
+                .SetStringAsync(
+                    $"Performance:{iteration}",
+                    "Value",
+                    new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow =
+                            TimeSpan.FromMinutes(5),
+                    })
+                .ConfigureAwait(false);
         }
         Stopwatch.Stop();
         var l2SetTicks = Stopwatch.ElapsedTicks;
@@ -63,8 +65,10 @@ public class PerformanceTests
         Stopwatch.Restart();
         for (var iteration = 1; iteration <= iterations; iteration++)
         {
-            await L1L2Cache.GetStringAsync(
-                $"Performance:{iteration}");
+            await L1L2Cache
+                .GetStringAsync(
+                    $"Performance:{iteration}")
+                .ConfigureAwait(false);
         }
         Stopwatch.Stop();
         var l1L2GetPropagationTicks = Stopwatch.ElapsedTicks;
@@ -72,14 +76,16 @@ public class PerformanceTests
         Stopwatch.Restart();
         for (var iteration = 1; iteration <= iterations; iteration++)
         {
-            await L1L2Cache.SetStringAsync(
-                $"Performance:{iteration}",
-                "Value",
-                new DistributedCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow =
-                        TimeSpan.FromMinutes(5),
-                });
+            await L1L2Cache
+                .SetStringAsync(
+                    $"Performance:{iteration}",
+                    "Value",
+                    new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow =
+                            TimeSpan.FromMinutes(5),
+                    })
+                .ConfigureAwait(false);
         }
         Stopwatch.Stop();
         var l1L2SetTicks = Stopwatch.ElapsedTicks;
@@ -87,8 +93,10 @@ public class PerformanceTests
         Stopwatch.Restart();
         for (var iteration = 1; iteration <= iterations; iteration++)
         {
-            await L2Cache.GetStringAsync(
-                $"Performance:{iteration}");
+            await L2Cache
+                .GetStringAsync(
+                    $"Performance:{iteration}")
+                .ConfigureAwait(false);
         }
         Stopwatch.Stop();
         var l2GetTicks = Stopwatch.ElapsedTicks;
@@ -96,8 +104,10 @@ public class PerformanceTests
         Stopwatch.Restart();
         for (var iteration = 1; iteration <= iterations; iteration++)
         {
-            await L1L2Cache.GetStringAsync(
-                $"Performance:{iteration}");
+            await L1L2Cache
+                .GetStringAsync(
+                    $"Performance:{iteration}")
+                .ConfigureAwait(false);
         }
         Stopwatch.Stop();
         var l1L2GetTicks = Stopwatch.ElapsedTicks;

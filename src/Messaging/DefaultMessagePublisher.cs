@@ -4,7 +4,8 @@ using System.Text.Json;
 
 namespace L1L2RedisCache;
 
-internal class DefaultMessagePublisher : IMessagePublisher
+internal sealed class DefaultMessagePublisher :
+    IMessagePublisher
 {
     public DefaultMessagePublisher(
         IOptions<JsonSerializerOptions> jsonSerializerOptions,
@@ -44,14 +45,16 @@ internal class DefaultMessagePublisher : IMessagePublisher
         string key,
         CancellationToken cancellationToken = default)
     {
-        await Subscriber.Value.PublishAsync(
-            L1L2RedisCacheOptions.Channel,
-            JsonSerializer.Serialize(
-                new CacheMessage
-                {
-                    Key = key,
-                    PublisherId = L1L2RedisCacheOptions.Id,
-                },
-                JsonSerializerOptions));
+        await Subscriber.Value
+            .PublishAsync(
+                L1L2RedisCacheOptions.Channel,
+                JsonSerializer.Serialize(
+                    new CacheMessage
+                    {
+                        Key = key,
+                        PublisherId = L1L2RedisCacheOptions.Id,
+                    },
+                    JsonSerializerOptions))
+            .ConfigureAwait(false);
     }
 }

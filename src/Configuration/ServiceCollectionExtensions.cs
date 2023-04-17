@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -15,10 +16,17 @@ public static class ServiceCollectionExtensions
     /// Adds L1L2RedisCache distributed caching services to the specified <c>IServiceCollection</c>.
     /// </summary>
     /// <returns>The <c>IServiceCollection</c> so that additional calls can be chained.</returns>
+    [SuppressMessage("Performance", "CA1849")]
     public static IServiceCollection AddL1L2RedisCache(
         this IServiceCollection services,
         Action<L1L2RedisCacheOptions> setupAction)
     {
+        if (setupAction == null)
+        {
+            throw new ArgumentNullException(
+                nameof(setupAction));
+        }
+
         var l1L2RedisCacheOptions = new L1L2RedisCacheOptions();
         setupAction.Invoke(l1L2RedisCacheOptions);
 

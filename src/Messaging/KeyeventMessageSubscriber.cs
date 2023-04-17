@@ -5,8 +5,16 @@ using StackExchange.Redis;
 
 namespace L1L2RedisCache;
 
-internal class KeyeventMessageSubscriber : IMessageSubscriber
+internal sealed class KeyeventMessageSubscriber :
+    IMessageSubscriber
 {
+    private static readonly
+        Action<ILogger, Exception?> _keyeventNotificationsMisconfigured =
+            LoggerMessage.Define(
+                LogLevel.Warning,
+                new EventId(0),
+                "Failed to verify keyevent notifications config");
+
     public KeyeventMessageSubscriber(
         IConfigurationVerifier configurationVerifier,
         IMemoryCache l1Cache,
@@ -38,16 +46,19 @@ internal class KeyeventMessageSubscriber : IMessageSubscriber
     public void Subscribe()
     {
         if (!ConfigurationVerifier
-            .TryVerifyConfiguration(
-                "notify-keyspace-events",
-                out var keyeventNotificationsException,
-                "g",
-                "h",
-                "E"))
+                .TryVerifyConfiguration(
+                    "notify-keyspace-events",
+                    out var keyeventNotificationsException,
+                    "g",
+                    "h",
+                    "E"))
         {
-            Logger?.LogWarning(
-                keyeventNotificationsException,
-                "Failed to verify keyevent notifications config.");
+            if (Logger != null)
+            {
+                _keyeventNotificationsMisconfigured(
+                    Logger,
+                    keyeventNotificationsException);
+            }
         }
 
         Subscriber.Value.Subscribe(
@@ -55,7 +66,7 @@ internal class KeyeventMessageSubscriber : IMessageSubscriber
             (channel, message) =>
             {
                 if (message.StartsWith(
-                    L1L2RedisCacheOptions.KeyPrefix))
+                        L1L2RedisCacheOptions.KeyPrefix))
                 {
                     var key = message
                         .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
@@ -70,7 +81,7 @@ internal class KeyeventMessageSubscriber : IMessageSubscriber
             (channel, message) =>
             {
                 if (message.StartsWith(
-                    L1L2RedisCacheOptions.KeyPrefix))
+                        L1L2RedisCacheOptions.KeyPrefix))
                 {
                     var key = message
                         .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];

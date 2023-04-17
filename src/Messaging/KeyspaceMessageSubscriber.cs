@@ -2,12 +2,19 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
-using System.Text.Json;
 
 namespace L1L2RedisCache;
 
-internal class KeyspaceMessageSubscriber : IMessageSubscriber
+internal sealed class KeyspaceMessageSubscriber :
+    IMessageSubscriber
 {
+    private static readonly
+        Action<ILogger, Exception?> _keyspaceNotificationsMisconfigured =
+            LoggerMessage.Define(
+                LogLevel.Warning,
+                new EventId(0),
+                "Failed to verify keyspace notifications config");
+
     public KeyspaceMessageSubscriber(
         IConfigurationVerifier configurationVerifier,
         IMemoryCache l1Cache,
@@ -39,16 +46,19 @@ internal class KeyspaceMessageSubscriber : IMessageSubscriber
     public void Subscribe()
     {
         if (!ConfigurationVerifier
-            .TryVerifyConfiguration(
-                "notify-keyspace-events",
-                out var keyeventNotificationsException,
-                "g",
-                "h",
-                "K"))
+                .TryVerifyConfiguration(
+                    "notify-keyspace-events",
+                    out var keyeventNotificationsException,
+                    "g",
+                    "h",
+                    "K"))
         {
-            Logger?.LogWarning(
-                keyeventNotificationsException,
-                "Failed to verify keyspace notifications config.");
+            if (Logger != null)
+            {
+                _keyspaceNotificationsMisconfigured(
+                    Logger,
+                    keyeventNotificationsException);
+            }
         }
 
         Subscriber.Value.Subscribe(
@@ -59,7 +69,8 @@ internal class KeyspaceMessageSubscriber : IMessageSubscriber
                     message == "hset")
                 {
                     var keyPrefixIndex = channel.ToString().IndexOf(
-                        L1L2RedisCacheOptions.KeyPrefix);
+                        L1L2RedisCacheOptions.KeyPrefix,
+                        StringComparison.Ordinal);
                     if (keyPrefixIndex != -1)
                     {
                         var key = channel.ToString()[
