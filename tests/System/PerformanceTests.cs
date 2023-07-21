@@ -7,6 +7,7 @@ using Xunit;
 
 namespace L1L2RedisCache.Tests.System;
 
+[Collection("System")]
 public class PerformanceTests
 {
     public PerformanceTests()

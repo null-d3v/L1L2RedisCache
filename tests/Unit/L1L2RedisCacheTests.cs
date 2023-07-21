@@ -100,10 +100,6 @@ public class L1L2RedisCacheTests
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()));
 
-        var mockMessageSubscriber = new Mock<IMessageSubscriber>();
-        mockMessageSubscriber
-            .Setup(mS => mS.Subscribe());
-
         var jsonSerializerOptions = Options.Create(
             new JsonSerializerOptions());
 
@@ -111,8 +107,7 @@ public class L1L2RedisCacheTests
             L1Cache,
             L1L2RedisCacheOptions,
             new Func<IDistributedCache>(() => L2Cache),
-            mockMessagePublisher.Object,
-            mockMessageSubscriber.Object);
+            mockMessagePublisher.Object);
     }
 
     public IMemoryCache L1Cache { get; }

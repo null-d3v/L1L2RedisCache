@@ -40,5 +40,11 @@ public sealed class L1L2RedisCacheOptions :
     public MessagingType MessagingType { get; set; } =
         MessagingType.Default;
 
+    /// <summary>
+    /// The duration of time to delay before retrying subscriber intialization.
+    /// </summary>
+    public TimeSpan SubscriberRetryDelay { get; set; } =
+        TimeSpan.FromSeconds(5);
+
     L1L2RedisCacheOptions IOptions<L1L2RedisCacheOptions>.Value => this;
 }

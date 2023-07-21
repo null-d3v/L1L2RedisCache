@@ -8,19 +8,14 @@
     <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <None CopyToOutputDirectory="PreserveNewest" Include="appsettings.json" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\L1L2RedisCache.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="7.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="7.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.*" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.*" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.*" />
-    <PackageReference Include="xunit" Version="2.4.*" />
-    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="All" Version="2.4.*" />
-  </ItemGroup>
-  <ItemGroup>
-    <None CopyToOutputDirectory="PreserveNewest" Include="appsettings.json" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.*" />
+    <PackageReference Include="xunit" Version="2.5.*" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="All" Version="2.5.*" />
   </ItemGroup>
 </Project>

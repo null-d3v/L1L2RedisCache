@@ -16,40 +16,56 @@ internal sealed class DefaultMessageSubscriber :
         JsonSerializerOptions = jsonSerializerOptions.Value;
         L1Cache = l1Cache;
         L1L2RedisCacheOptions = l1L2RedisCacheOptionsOptionsAccessor.Value;
-
-        Subscriber = new Lazy<ISubscriber>(() =>
-            L1L2RedisCacheOptions
-                .ConnectionMultiplexerFactory?
-                .Invoke()
-                .GetAwaiter()
-                .GetResult()
-                .GetSubscriber() ??
-                throw new InvalidOperationException());
     }
 
     public JsonSerializerOptions JsonSerializerOptions { get; set; }
     public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; }
     public IMemoryCache L1Cache { get; set; }
-    public Lazy<ISubscriber> Subscriber { get; set; }
 
-    public void Subscribe()
+    public async Task SubscribeAsync(
+        CancellationToken cancellationToken = default)
     {
-        Subscriber.Value.Subscribe(
-            L1L2RedisCacheOptions.Channel,
-            (channel, message) =>
-            {
-                var cacheMessage = JsonSerializer
-                    .Deserialize<CacheMessage>(
-                        message.ToString(),
-                        JsonSerializerOptions);
-                if (cacheMessage?.PublisherId !=
-                    L1L2RedisCacheOptions.Id)
+        var subscriber = (await L1L2RedisCacheOptions
+            .ConnectionMultiplexerFactory!()
+            .ConfigureAwait(false))
+            .GetSubscriber();
+
+        await subscriber
+            .SubscribeAsync(
+                new RedisChannel(
+                    L1L2RedisCacheOptions.Channel,
+                    RedisChannel.PatternMode.Literal),
+                (channel, message) =>
                 {
-                    L1Cache.Remove(
-                        $"{L1L2RedisCacheOptions.KeyPrefix}{cacheMessage?.Key}");
-                    L1Cache.Remove(
-                        $"{L1L2RedisCacheOptions.LockKeyPrefix}{cacheMessage?.Key}");
-                }
-            });
+                    var cacheMessage = JsonSerializer
+                        .Deserialize<CacheMessage>(
+                            message.ToString(),
+                            JsonSerializerOptions);
+                    if (cacheMessage?.PublisherId !=
+                        L1L2RedisCacheOptions.Id)
+                    {
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.KeyPrefix}{cacheMessage?.Key}");
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.LockKeyPrefix}{cacheMessage?.Key}");
+                    }
+                })
+            .ConfigureAwait(false);
+    }
+
+    public async Task UnsubscribeAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var subscriber = (await L1L2RedisCacheOptions
+            .ConnectionMultiplexerFactory!()
+            .ConfigureAwait(false))
+            .GetSubscriber();
+
+        await subscriber
+            .UnsubscribeAsync(
+                new RedisChannel(
+                    L1L2RedisCacheOptions.Channel,
+                    RedisChannel.PatternMode.Literal))
+            .ConfigureAwait(false);
     }
 }

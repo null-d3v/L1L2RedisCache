@@ -18,8 +18,7 @@ public class L1L2RedisCache : IDistributedCache
         IMemoryCache l1Cache,
         IOptions<L1L2RedisCacheOptions> l1l2RedisCacheOptionsAccessor,
         Func<IDistributedCache> l2CacheAccessor,
-        IMessagePublisher messagePublisher,
-        IMessageSubscriber messageSubscriber)
+        IMessagePublisher messagePublisher)
     {
         if (l1l2RedisCacheOptionsAccessor == null)
         {
@@ -36,7 +35,6 @@ public class L1L2RedisCache : IDistributedCache
         L1L2RedisCacheOptions = l1l2RedisCacheOptionsAccessor.Value;
         L2Cache = l2CacheAccessor();
         MessagePublisher = messagePublisher;
-        MessageSubscriber = messageSubscriber;
 
         Database = new Lazy<IDatabase>(() =>
             L1L2RedisCacheOptions
@@ -48,9 +46,7 @@ public class L1L2RedisCache : IDistributedCache
                     L1L2RedisCacheOptions
                         .ConfigurationOptions?
                         .DefaultDatabase ?? -1) ??
-                throw new InvalidOperationException());
-
-        MessageSubscriber.Subscribe();
+                    throw new InvalidOperationException());
     }
 
     private static SemaphoreSlim KeySemaphore { get; } =
@@ -80,11 +76,6 @@ public class L1L2RedisCache : IDistributedCache
     /// The pub/sub publisher.
     /// </summary>
     public IMessagePublisher MessagePublisher { get; }
-
-    /// <summary>
-    /// The pub/sub subscriber.
-    /// </summary>
-    public IMessageSubscriber MessageSubscriber { get; }
 
     /// <summary>
     /// Gets a value with the given key.

@@ -26,70 +26,99 @@ internal sealed class KeyeventMessageSubscriber :
         L1L2RedisCacheOptions = l1L2RedisCacheOptionsOptionsAccessor.Value;
 
         Logger = logger;
-
-        Subscriber = new Lazy<ISubscriber>(() =>
-            L1L2RedisCacheOptions
-                .ConnectionMultiplexerFactory?
-                .Invoke()
-                .GetAwaiter()
-                .GetResult()
-                .GetSubscriber() ??
-                throw new InvalidOperationException());
     }
 
     public IConfigurationVerifier ConfigurationVerifier { get; set; }
     public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; }
     public IMemoryCache L1Cache { get; set; }
     public ILogger<KeyeventMessageSubscriber>? Logger { get; set; }
-    public Lazy<ISubscriber> Subscriber { get; set; }
 
-    public void Subscribe()
+    public async Task SubscribeAsync(
+        CancellationToken cancellationToken = default)
     {
-        if (!ConfigurationVerifier
-                .TryVerifyConfiguration(
+        if (!await ConfigurationVerifier
+                .VerifyConfigurationAsync(
                     "notify-keyspace-events",
-                    out var keyeventNotificationsException,
+                    cancellationToken,
                     "g",
                     "h",
-                    "E"))
+                    "E")
+                .ConfigureAwait(false))
         {
             if (Logger != null)
             {
                 _keyeventNotificationsMisconfigured(
                     Logger,
-                    keyeventNotificationsException);
+                    null);
             }
         }
 
-        Subscriber.Value.Subscribe(
-            "__keyevent@*__:del",
-            (channel, message) =>
-            {
-                if (message.StartsWith(
-                        L1L2RedisCacheOptions.KeyPrefix))
+        var subscriber = (await L1L2RedisCacheOptions
+            .ConnectionMultiplexerFactory!()
+            .ConfigureAwait(false))
+            .GetSubscriber();
+
+        await subscriber
+            .SubscribeAsync(
+                new RedisChannel(
+                    "__keyevent@*__:del",
+                    RedisChannel.PatternMode.Pattern),
+                (channel, message) =>
                 {
-                    var key = message
-                        .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
-                    L1Cache.Remove(
-                        $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-                    L1Cache.Remove(
-                        $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
-                }
-            });
-        Subscriber.Value.Subscribe(
-            "__keyevent@*__:hset",
-            (channel, message) =>
-            {
-                if (message.StartsWith(
-                        L1L2RedisCacheOptions.KeyPrefix))
+                    if (message.StartsWith(
+                            L1L2RedisCacheOptions.KeyPrefix))
+                    {
+                        var key = message
+                            .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
+                    }
+                })
+            .ConfigureAwait(false);
+
+        await subscriber
+            .SubscribeAsync(
+                new RedisChannel(
+                    "__keyevent@*__:hset",
+                    RedisChannel.PatternMode.Pattern),
+                (channel, message) =>
                 {
-                    var key = message
-                        .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
-                    L1Cache.Remove(
-                        $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-                    L1Cache.Remove(
-                        $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
-                }
-            });
+                    if (message.StartsWith(
+                            L1L2RedisCacheOptions.KeyPrefix))
+                    {
+                        var key = message
+                            .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
+                    }
+                })
+            .ConfigureAwait(false);
+    }
+
+    public async Task UnsubscribeAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var subscriber = (await L1L2RedisCacheOptions
+            .ConnectionMultiplexerFactory!()
+            .ConfigureAwait(false))
+            .GetSubscriber();
+
+        await subscriber
+            .UnsubscribeAsync(
+                new RedisChannel(
+                    "__keyevent@*__:del",
+                    RedisChannel.PatternMode.Pattern))
+            .ConfigureAwait(false);
+
+        await subscriber
+            .UnsubscribeAsync(
+                new RedisChannel(
+                    "__keyevent@*__:hset",
+                    RedisChannel.PatternMode.Pattern))
+            .ConfigureAwait(false);
     }
 }

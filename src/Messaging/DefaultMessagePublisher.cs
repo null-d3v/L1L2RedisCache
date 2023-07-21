@@ -31,7 +31,9 @@ internal sealed class DefaultMessagePublisher :
     public void Publish(string key)
     {
         Subscriber.Value.Publish(
-            L1L2RedisCacheOptions.Channel,
+            new RedisChannel(
+                L1L2RedisCacheOptions.Channel,
+                RedisChannel.PatternMode.Literal),
             JsonSerializer.Serialize(
                 new CacheMessage
                 {
@@ -47,7 +49,9 @@ internal sealed class DefaultMessagePublisher :
     {
         await Subscriber.Value
             .PublishAsync(
-                L1L2RedisCacheOptions.Channel,
+                new RedisChannel(
+                    L1L2RedisCacheOptions.Channel,
+                    RedisChannel.PatternMode.Literal),
                 JsonSerializer.Serialize(
                     new CacheMessage
                     {

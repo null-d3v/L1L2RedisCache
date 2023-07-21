@@ -8,5 +8,12 @@ public interface IMessageSubscriber
     /// <summary>
     /// Subscribes to messages indicating cache values have changed.
     /// </summary>
-    void Subscribe();
+    Task SubscribeAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Unsubscribes to messages indicating cache values have changed.
+    /// </summary>
+    Task UnsubscribeAsync(
+        CancellationToken cancellationToken = default);
 }

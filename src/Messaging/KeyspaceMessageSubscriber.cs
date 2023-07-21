@@ -26,61 +26,78 @@ internal sealed class KeyspaceMessageSubscriber :
         L1L2RedisCacheOptions = l1L2RedisCacheOptionsOptionsAccessor.Value;
 
         Logger = logger;
-
-        Subscriber = new Lazy<ISubscriber>(() =>
-            L1L2RedisCacheOptions
-                .ConnectionMultiplexerFactory?
-                .Invoke()
-                .GetAwaiter()
-                .GetResult()
-                .GetSubscriber() ??
-                throw new InvalidOperationException());
     }
 
     public IConfigurationVerifier ConfigurationVerifier { get; set; }
     public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; }
     public IMemoryCache L1Cache { get; set; }
     public ILogger<KeyspaceMessageSubscriber>? Logger { get; set; }
-    public Lazy<ISubscriber> Subscriber { get; set; }
 
-    public void Subscribe()
+    public async Task SubscribeAsync(
+        CancellationToken cancellationToken = default)
     {
-        if (!ConfigurationVerifier
-                .TryVerifyConfiguration(
+        if (!await ConfigurationVerifier
+                .VerifyConfigurationAsync(
                     "notify-keyspace-events",
-                    out var keyeventNotificationsException,
+                    cancellationToken,
                     "g",
                     "h",
-                    "K"))
+                    "K")
+                .ConfigureAwait(false))
         {
             if (Logger != null)
             {
                 _keyspaceNotificationsMisconfigured(
                     Logger,
-                    keyeventNotificationsException);
+                    null);
             }
         }
 
-        Subscriber.Value.Subscribe(
-            "__keyspace@*__:*",
-            (channel, message) =>
-            {
-                if (message == "del" ||
-                    message == "hset")
+        var subscriber = (await L1L2RedisCacheOptions
+            .ConnectionMultiplexerFactory!()
+            .ConfigureAwait(false))
+            .GetSubscriber();
+
+        await subscriber
+            .SubscribeAsync(
+                new RedisChannel(
+                    "__keyspace@*__:*",
+                    RedisChannel.PatternMode.Pattern),
+                (channel, message) =>
                 {
-                    var keyPrefixIndex = channel.ToString().IndexOf(
-                        L1L2RedisCacheOptions.KeyPrefix,
-                        StringComparison.Ordinal);
-                    if (keyPrefixIndex != -1)
+                    if (message == "del" ||
+                        message == "hset")
                     {
-                        var key = channel.ToString()[
-                            (keyPrefixIndex + L1L2RedisCacheOptions.KeyPrefix.Length)..];
-                        L1Cache.Remove(
-                            $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-                        L1Cache.Remove(
-                            $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
+                        var keyPrefixIndex = channel.ToString().IndexOf(
+                            L1L2RedisCacheOptions.KeyPrefix,
+                            StringComparison.Ordinal);
+                        if (keyPrefixIndex != -1)
+                        {
+                            var key = channel.ToString()[
+                                (keyPrefixIndex + L1L2RedisCacheOptions.KeyPrefix.Length)..];
+                            L1Cache.Remove(
+                                $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
+                            L1Cache.Remove(
+                                $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
+                        }
                     }
-                }
-            });
+                })
+            .ConfigureAwait(false);
+    }
+
+    public async Task UnsubscribeAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var subscriber = (await L1L2RedisCacheOptions
+            .ConnectionMultiplexerFactory!()
+            .ConfigureAwait(false))
+            .GetSubscriber();
+
+        await subscriber
+            .UnsubscribeAsync(
+                new RedisChannel(
+                    "__keyspace@*__:*",
+                    RedisChannel.PatternMode.Pattern))
+            .ConfigureAwait(false);
     }
 }

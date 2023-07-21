@@ -1,11 +1,13 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace L1L2RedisCache.Tests.System;
 
+[Collection("System")]
 public class MessagingTests
 {
     public MessagingTests()
@@ -40,13 +42,20 @@ public class MessagingTests
             Configuration.Bind("L1L2RedisCache", options);
             options.MessagingType = messagingType;
         });
-        var primaryL1L2Cache = primaryServices
-            .BuildServiceProvider()
+        var primaryServiceProvider = primaryServices
+            .BuildServiceProvider();
+
+        var primaryL1L2Cache = primaryServiceProvider
             .GetRequiredService<IDistributedCache>();
-        var primaryL1L2CacheOptions = primaryServices
-            .BuildServiceProvider()
+        var primaryL1L2CacheOptions = primaryServiceProvider
             .GetRequiredService<IOptions<L1L2RedisCacheOptions>>()
             .Value;
+
+        var primarySubscriberHostedService = primaryServiceProvider
+            .GetRequiredService<IHostedService>();
+        await primarySubscriberHostedService
+            .StartAsync(CancellationToken.None)
+            .ConfigureAwait(false);
 
         var primaryDatabase = (await primaryL1L2CacheOptions
             .ConnectionMultiplexerFactory!
@@ -71,9 +80,17 @@ public class MessagingTests
             Configuration.Bind("L1L2RedisCache", options);
             options.MessagingType = messagingType;
         });
-        var secondaryL1L2Cache = secondaryServices
-            .BuildServiceProvider()
+        var secondaryServiceProvider = primaryServices
+            .BuildServiceProvider();
+
+        var secondaryL1L2Cache = secondaryServiceProvider
             .GetRequiredService<IDistributedCache>();
+
+        var secondarySubscriberHostedService = secondaryServiceProvider
+            .GetRequiredService<IHostedService>();
+        await secondarySubscriberHostedService
+            .StartAsync(CancellationToken.None)
+            .ConfigureAwait(false);
 
         for (var iteration = 0; iteration < iterations; iteration++)
         {
@@ -103,5 +120,18 @@ public class MessagingTests
                     .GetStringAsync(key)
                     .ConfigureAwait(false));
         }
+
+        await primarySubscriberHostedService
+            .StopAsync(CancellationToken.None)
+            .ConfigureAwait(false);
+        await primaryServiceProvider
+            .DisposeAsync()
+            .ConfigureAwait(false);
+        await secondarySubscriberHostedService
+            .StopAsync(CancellationToken.None)
+            .ConfigureAwait(false);
+        await secondaryServiceProvider
+            .DisposeAsync()
+            .ConfigureAwait(false);
     }
 }
