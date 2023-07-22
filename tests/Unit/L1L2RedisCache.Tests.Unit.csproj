@@ -8,6 +8,12 @@
     <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <AssemblyAttribute Include="Xunit.CollectionBehaviorAttribute">
+      <MaxParallelThreads>-1</MaxParallelThreads>
+      <MaxParallelThreads_TypeName>System.Int32</MaxParallelThreads_TypeName>
+    </AssemblyAttribute>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\L1L2RedisCache.csproj" />
   </ItemGroup>
   <ItemGroup>

@@ -32,7 +32,7 @@ public sealed class L1L2RedisCacheOptions :
     /// <summary>
     /// A prefix to be applied to all L1 lock cache keys.
     /// </summary>
-    public string LockKeyPrefix => $"{Id}:{KeyPrefix}";
+    public string LockKeyPrefix => $"{KeyPrefix}{Id}";
 
     /// <summary>
     /// The type of messaging to use for L1 memory cache eviction.

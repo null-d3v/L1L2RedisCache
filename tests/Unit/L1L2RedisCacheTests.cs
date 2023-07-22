@@ -8,6 +8,7 @@ using Xunit;
 
 namespace L1L2RedisCache.Tests.Unit;
 
+[Collection("Unit")]
 public class L1L2RedisCacheTests
 {
     public L1L2RedisCacheTests()
@@ -121,7 +122,7 @@ public class L1L2RedisCacheTests
         var key = "key";
         var value = "   "u8.ToArray();
 
-        var prefixedKey = $"{L1L2RedisCacheOptions.InstanceName}{key}";
+        var prefixedKey = $"{L1L2RedisCacheOptions.KeyPrefix}{key}";
 
         await L2Cache
             .SetAsync(key, value)
@@ -145,7 +146,7 @@ public class L1L2RedisCacheTests
         var key = "key";
         var value = "   "u8.ToArray();
 
-        var prefixedKey = $"{L1L2RedisCacheOptions.InstanceName}{key}";
+        var prefixedKey = $"{L1L2RedisCacheOptions.KeyPrefix}{key}";
 
         L1L2Cache.Set(key, value);
 
@@ -166,7 +167,7 @@ public class L1L2RedisCacheTests
         var key = "key";
         var value = "   "u8.ToArray();
 
-        var prefixedKey = $"{L1L2RedisCacheOptions.InstanceName}{key}";
+        var prefixedKey = $"{L1L2RedisCacheOptions.KeyPrefix}{key}";
 
         L1L2Cache.Set(key, value);
 
@@ -196,7 +197,7 @@ public class L1L2RedisCacheTests
         var key = "key";
         var value = "   "u8.ToArray();
 
-        var prefixedKey = $"{L1L2RedisCacheOptions.InstanceName}{key}";
+        var prefixedKey = $"{L1L2RedisCacheOptions.KeyPrefix}{key}";
 
         await L1L2Cache
             .SetAsync(key, value)
@@ -223,7 +224,7 @@ public class L1L2RedisCacheTests
         var key = "key";
         var value = "   "u8.ToArray();
 
-        var prefixedKey = $"{L1L2RedisCacheOptions.InstanceName}{key}";
+        var prefixedKey = $"{L1L2RedisCacheOptions.KeyPrefix}{key}";
 
         await L1L2Cache
             .SetAsync(key, value)

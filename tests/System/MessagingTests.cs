@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Xunit;
 
@@ -51,10 +50,10 @@ public class MessagingTests
             .GetRequiredService<IOptions<L1L2RedisCacheOptions>>()
             .Value;
 
-        var primarySubscriberHostedService = primaryServiceProvider
-            .GetRequiredService<IHostedService>();
-        await primarySubscriberHostedService
-            .StartAsync(CancellationToken.None)
+        var primaryMessageSubscriber = primaryServiceProvider
+            .GetRequiredService<IMessageSubscriber>();
+        await primaryMessageSubscriber
+            .SubscribeAsync()
             .ConfigureAwait(false);
 
         var primaryDatabase = (await primaryL1L2CacheOptions
@@ -73,6 +72,16 @@ public class MessagingTests
                 NotifyKeyspaceEventsConfig[messagingType])
             .ConfigureAwait(false);
 
+        var configurationVerifier = primaryServiceProvider
+            .GetRequiredService<IConfigurationVerifier>();
+        Assert.True(
+            await configurationVerifier
+                .VerifyConfigurationAsync(
+                    "notify-keyspace-events",
+                    CancellationToken.None,
+                    NotifyKeyspaceEventsConfig[messagingType])
+                .ConfigureAwait(false));
+
         var secondaryServices = new ServiceCollection();
         secondaryServices.AddSingleton(Configuration);
         secondaryServices.AddL1L2RedisCache(options =>
@@ -80,16 +89,16 @@ public class MessagingTests
             Configuration.Bind("L1L2RedisCache", options);
             options.MessagingType = messagingType;
         });
-        var secondaryServiceProvider = primaryServices
+        var secondaryServiceProvider = secondaryServices
             .BuildServiceProvider();
 
         var secondaryL1L2Cache = secondaryServiceProvider
             .GetRequiredService<IDistributedCache>();
 
-        var secondarySubscriberHostedService = secondaryServiceProvider
-            .GetRequiredService<IHostedService>();
-        await secondarySubscriberHostedService
-            .StartAsync(CancellationToken.None)
+        var secondaryMessageSubscriber = secondaryServiceProvider
+            .GetRequiredService<IMessageSubscriber>();
+        await secondaryMessageSubscriber
+            .SubscribeAsync()
             .ConfigureAwait(false);
 
         for (var iteration = 0; iteration < iterations; iteration++)
@@ -111,24 +120,33 @@ public class MessagingTests
             await primaryL1L2Cache
                 .RemoveAsync(key)
                 .ConfigureAwait(false);
-            await Task
-                .Delay(25)
-                .ConfigureAwait(false);
 
-            Assert.Null(
-                await secondaryL1L2Cache
+            var secondaryValue = await secondaryL1L2Cache
+                .GetStringAsync(key)
+                .ConfigureAwait(false);
+            var attempts = 1;
+            while (attempts < 25 && secondaryValue != null)
+            {
+                attempts++;
+                await Task
+                    .Delay(25)
+                    .ConfigureAwait(false);
+                secondaryValue = await secondaryL1L2Cache
                     .GetStringAsync(key)
-                    .ConfigureAwait(false));
+                    .ConfigureAwait(false);
+            }
+
+            Assert.Null(secondaryValue);
         }
 
-        await primarySubscriberHostedService
-            .StopAsync(CancellationToken.None)
+        await primaryMessageSubscriber
+            .UnsubscribeAsync()
             .ConfigureAwait(false);
         await primaryServiceProvider
             .DisposeAsync()
             .ConfigureAwait(false);
-        await secondarySubscriberHostedService
-            .StopAsync(CancellationToken.None)
+        await secondaryMessageSubscriber
+            .UnsubscribeAsync()
             .ConfigureAwait(false);
         await secondaryServiceProvider
             .DisposeAsync()
