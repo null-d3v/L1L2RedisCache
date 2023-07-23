@@ -1,14 +1,14 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using StackExchange.Redis;
 using System.Text.Json;
-using Xunit;
 
 namespace L1L2RedisCache.Tests.Unit;
 
-[Collection("Unit")]
+[TestClass]
 public class L1L2RedisCacheTests
 {
     public L1L2RedisCacheTests()
@@ -122,7 +122,7 @@ public class L1L2RedisCacheTests
     public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; }
     public IDistributedCache L2Cache { get; }
 
-    [Fact]
+    [TestMethod]
     public async Task GetPropagationTest()
     {
         var key = "key";
@@ -134,19 +134,19 @@ public class L1L2RedisCacheTests
             .SetAsync(key, value)
             .ConfigureAwait(false);
 
-        Assert.Null(
+        Assert.IsNull(
             L1Cache.Get(prefixedKey));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             await L1L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1Cache.Get(prefixedKey));
     }
 
-    [Fact]
+    [TestMethod]
     public void SetTest()
     {
         var key = "key";
@@ -156,18 +156,18 @@ public class L1L2RedisCacheTests
 
         L1L2Cache.Set(key, value);
 
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1L2Cache.Get(key));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1Cache.Get(prefixedKey));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L2Cache.Get(key));
     }
 
-    [Fact]
+    [TestMethod]
     public void SetRemoveTest()
     {
         var key = "key";
@@ -177,27 +177,27 @@ public class L1L2RedisCacheTests
 
         L1L2Cache.Set(key, value);
 
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1L2Cache.Get(key));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1Cache.Get(prefixedKey));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L2Cache.Get(key));
 
         L1L2Cache.Remove(key);
 
-        Assert.Null(
+        Assert.IsNull(
             L1L2Cache.Get(key));
-        Assert.Null(
+        Assert.IsNull(
             L1Cache.Get(prefixedKey));
-        Assert.Null(
+        Assert.IsNull(
             L2Cache.Get(key));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task SetAsyncTest()
     {
         var key = "key";
@@ -209,22 +209,22 @@ public class L1L2RedisCacheTests
             .SetAsync(key, value)
             .ConfigureAwait(false);
 
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             await L1L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1Cache.Get(prefixedKey));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             await L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task SetAsyncRemoveAsyncTest()
     {
         var key = "key";
@@ -236,15 +236,15 @@ public class L1L2RedisCacheTests
             .SetAsync(key, value)
             .ConfigureAwait(false);
 
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             await L1L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1Cache.Get(prefixedKey));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             await L2Cache
                 .GetAsync(key)
@@ -254,13 +254,13 @@ public class L1L2RedisCacheTests
             .RemoveAsync(key)
             .ConfigureAwait(false);
 
-        Assert.Null(
+        Assert.IsNull(
             await L1L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
-        Assert.Null(
+        Assert.IsNull(
             L1Cache.Get(prefixedKey));
-        Assert.Null(
+        Assert.IsNull(
             await L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));

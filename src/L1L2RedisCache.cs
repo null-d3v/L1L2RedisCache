@@ -304,10 +304,14 @@ public sealed class L1L2RedisCache :
             .ConfigureAwait(false);
         try
         {
-            L2Cache.Remove(key);
+            await L2Cache
+                .RemoveAsync(key, token)
+                .ConfigureAwait(false);
             L1Cache.Remove(
                 $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-            MessagePublisher.Publish(key);
+            await MessagePublisher
+                .PublishAsync(key, token)
+                .ConfigureAwait(false);
             L1Cache.Remove(
                 $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
         }

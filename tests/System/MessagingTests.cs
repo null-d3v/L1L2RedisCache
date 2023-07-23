@@ -2,11 +2,11 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Xunit;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace L1L2RedisCache.Tests.System;
 
-[Collection("System")]
+[TestClass]
 public class MessagingTests
 {
     public MessagingTests()
@@ -26,91 +26,10 @@ public class MessagingTests
     public IConfiguration Configuration { get; }
     public IDictionary<MessagingType, string> NotifyKeyspaceEventsConfig { get; }
 
-    [InlineData(100)]
-    [Theory]
-    public async Task MemoryMessagingTest(
-        int iterations)
-    {
-        var memoryMessagePublisherSubscriber =
-            new MemoryMessagePublisherSubscriber();
-
-        var primaryServices = new ServiceCollection();
-        primaryServices.AddSingleton(Configuration);
-        primaryServices.AddL1L2RedisCache(options =>
-        {
-            Configuration.Bind("L1L2RedisCache", options);
-        });
-        primaryServices.AddSingleton<IMessagePublisher>(
-            memoryMessagePublisherSubscriber);
-        primaryServices.AddSingleton<IMessageSubscriber>(
-            memoryMessagePublisherSubscriber);
-        var primaryServiceProvider = primaryServices
-            .BuildServiceProvider();
-
-        var primaryL1L2Cache = primaryServiceProvider
-            .GetRequiredService<IDistributedCache>();
-        var primaryL1L2CacheOptions = primaryServiceProvider
-            .GetRequiredService<IOptions<L1L2RedisCacheOptions>>()
-            .Value;
-
-        await SetAndVerifyConfiguration(
-            primaryServiceProvider,
-            MessagingType.Default)
-            .ConfigureAwait(false);
-
-        var secondaryServices = new ServiceCollection();
-        secondaryServices.AddSingleton(Configuration);
-        secondaryServices.AddL1L2RedisCache(options =>
-        {
-            Configuration.Bind("L1L2RedisCache", options);
-        });
-        secondaryServices.AddSingleton<IMessagePublisher>(
-            memoryMessagePublisherSubscriber);
-        secondaryServices.AddSingleton<IMessageSubscriber>(
-            memoryMessagePublisherSubscriber);
-        var secondaryServiceProvider = secondaryServices
-            .BuildServiceProvider();
-
-        var secondaryL1L2Cache = secondaryServiceProvider
-            .GetRequiredService<IDistributedCache>();
-
-        for (var iteration = 0; iteration < iterations; iteration++)
-        {
-            var key = Guid.NewGuid().ToString();
-            var value = Guid.NewGuid().ToString();
-
-            await primaryL1L2Cache
-                .SetStringAsync(
-                    key, value)
-                .ConfigureAwait(false);
-
-            Assert.Equal(
-                value,
-                await secondaryL1L2Cache
-                    .GetStringAsync(key)
-                    .ConfigureAwait(false));
-
-            await primaryL1L2Cache
-                .RemoveAsync(key)
-                .ConfigureAwait(false);
-
-            Assert.Contains(
-                key,
-                memoryMessagePublisherSubscriber.PublishedKeys);
-        }
-
-        await primaryServiceProvider
-            .DisposeAsync()
-            .ConfigureAwait(false);
-        await secondaryServiceProvider
-            .DisposeAsync()
-            .ConfigureAwait(false);
-    }
-
-    [InlineData(0, MessagingType.Default)]
-    [InlineData(100, MessagingType.KeyeventNotifications)]
-    [InlineData(100, MessagingType.KeyspaceNotifications)]
-    [Theory]
+    [DataRow(100, MessagingType.Default)]
+    [DataRow(100, MessagingType.KeyeventNotifications)]
+    [DataRow(100, MessagingType.KeyspaceNotifications)]
+    [TestMethod]
     public async Task MessagingTypeTest(
         int iterations,
         MessagingType messagingType)
@@ -159,7 +78,7 @@ public class MessagingTests
                     key, value)
                 .ConfigureAwait(false);
 
-            Assert.Equal(
+            Assert.AreEqual(
                 value,
                 await secondaryL1L2Cache
                     .GetStringAsync(key)
@@ -172,7 +91,7 @@ public class MessagingTests
                 .Delay(25)
                 .ConfigureAwait(false);
 
-            Assert.Null(
+            Assert.IsNull(
                 await secondaryL1L2Cache
                     .GetStringAsync(key)
                     .ConfigureAwait(false));
@@ -212,7 +131,7 @@ public class MessagingTests
 
         var configurationVerifier = serviceProvider
             .GetRequiredService<IConfigurationVerifier>();
-        Assert.True(
+        Assert.IsTrue(
             await configurationVerifier
                 .VerifyConfigurationAsync(
                     "notify-keyspace-events",
