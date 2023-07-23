@@ -34,9 +34,6 @@ public class MessagingTests
         int iterations,
         MessagingType messagingType)
     {
-        var memoryMessagePublisherSubscriber =
-            new MemoryMessagePublisherSubscriber();
-
         var primaryServices = new ServiceCollection();
         primaryServices.AddSingleton(Configuration);
         primaryServices.AddL1L2RedisCache(options =>
@@ -44,10 +41,6 @@ public class MessagingTests
             Configuration.Bind("L1L2RedisCache", options);
             options.MessagingType = messagingType;
         });
-        primaryServices.AddSingleton<IMessagePublisher>(
-            memoryMessagePublisherSubscriber);
-        primaryServices.AddSingleton<IMessageSubscriber>(
-            memoryMessagePublisherSubscriber);
         var primaryServiceProvider = primaryServices
             .BuildServiceProvider();
 
@@ -90,10 +83,6 @@ public class MessagingTests
             Configuration.Bind("L1L2RedisCache", options);
             options.MessagingType = messagingType;
         });
-        primaryServices.AddSingleton<IMessagePublisher>(
-            memoryMessagePublisherSubscriber);
-        primaryServices.AddSingleton<IMessageSubscriber>(
-            memoryMessagePublisherSubscriber);
         var secondaryServiceProvider = secondaryServices
             .BuildServiceProvider();
 
@@ -119,10 +108,14 @@ public class MessagingTests
             await primaryL1L2Cache
                 .RemoveAsync(key)
                 .ConfigureAwait(false);
+            await Task
+                .Delay(25)
+                .ConfigureAwait(false);
 
-            Assert.Contains(
-                key,
-                memoryMessagePublisherSubscriber.PublishedKeys);
+            Assert.Null(
+                await secondaryL1L2Cache
+                    .GetStringAsync(key)
+                    .ConfigureAwait(false));
         }
 
         await primaryServiceProvider

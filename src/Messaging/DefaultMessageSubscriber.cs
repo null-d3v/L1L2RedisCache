@@ -30,27 +30,25 @@ internal sealed class DefaultMessageSubscriber :
             .ConfigureAwait(false))
             .GetSubscriber();
 
-        (await subscriber
+        await subscriber
             .SubscribeAsync(
-                new RedisChannel(
-                    L1L2RedisCacheOptions.Channel,
-                    RedisChannel.PatternMode.Literal))
-            .ConfigureAwait(false))
-            .OnMessage(channelMessage =>
-            {
-                var cacheMessage = JsonSerializer
-                    .Deserialize<CacheMessage>(
-                        channelMessage.Message.ToString(),
-                        JsonSerializerOptions);
-                if (cacheMessage?.PublisherId !=
-                    L1L2RedisCacheOptions.Id)
+                L1L2RedisCacheOptions.Channel,
+                (channel, message) =>
                 {
-                    L1Cache.Remove(
-                        $"{L1L2RedisCacheOptions.KeyPrefix}{cacheMessage?.Key}");
-                    L1Cache.Remove(
-                        $"{L1L2RedisCacheOptions.LockKeyPrefix}{cacheMessage?.Key}");
-                }
-            });
+                    var cacheMessage = JsonSerializer
+                        .Deserialize<CacheMessage>(
+                            message.ToString(),
+                            JsonSerializerOptions);
+                    if (cacheMessage?.PublisherId !=
+                        L1L2RedisCacheOptions.Id)
+                    {
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.KeyPrefix}{cacheMessage?.Key}");
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.LockKeyPrefix}{cacheMessage?.Key}");
+                    }
+                })
+            .ConfigureAwait(false);
     }
 
     public async Task UnsubscribeAsync(

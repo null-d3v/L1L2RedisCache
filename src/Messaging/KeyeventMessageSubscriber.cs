@@ -11,7 +11,7 @@ internal sealed class KeyeventMessageSubscriber :
     private static readonly
         Action<ILogger, Exception?> _keyeventNotificationsMisconfigured =
             LoggerMessage.Define(
-                LogLevel.Warning,
+                LogLevel.Error,
                 new EventId(0),
                 "Failed to verify keyevent notifications config");
 
@@ -58,45 +58,41 @@ internal sealed class KeyeventMessageSubscriber :
             .ConfigureAwait(false))
             .GetSubscriber();
 
-        (await subscriber
+        await subscriber
             .SubscribeAsync(
-                new RedisChannel(
-                    "__keyevent@*__:del",
-                    RedisChannel.PatternMode.Pattern))
-            .ConfigureAwait(false))
-            .OnMessage(channelMessage =>
-            {
-                if (channelMessage.Message.StartsWith(
-                        L1L2RedisCacheOptions.KeyPrefix))
+                "__keyevent@*__:del",
+                (channel, message) =>
                 {
-                    var key = channelMessage.Message
-                        .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
-                    L1Cache.Remove(
-                        $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-                    L1Cache.Remove(
-                        $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
-                }
-            });
+                    if (message.StartsWith(
+                            L1L2RedisCacheOptions.KeyPrefix))
+                    {
+                        var key = message
+                            .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
+                    }
+                })
+            .ConfigureAwait(false);
 
-        (await subscriber
+        await subscriber
             .SubscribeAsync(
-                new RedisChannel(
-                    "__keyevent@*__:hset",
-                    RedisChannel.PatternMode.Pattern))
-            .ConfigureAwait(false))
-            .OnMessage(channelMessage =>
-            {
-                if (channelMessage.Message.StartsWith(
-                        L1L2RedisCacheOptions.KeyPrefix))
+                "__keyevent@*__:hset",
+                (channel, message) =>
                 {
-                    var key = channelMessage.Message
-                        .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
-                    L1Cache.Remove(
-                        $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-                    L1Cache.Remove(
-                        $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
-                }
-            });
+                    if (message.StartsWith(
+                            L1L2RedisCacheOptions.KeyPrefix))
+                    {
+                        var key = message
+                            .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
+                    }
+                })
+            .ConfigureAwait(false);
     }
 
     public async Task UnsubscribeAsync(

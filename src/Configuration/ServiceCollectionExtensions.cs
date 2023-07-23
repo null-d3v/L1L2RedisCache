@@ -78,7 +78,6 @@ public static class ServiceCollectionExtensions
                         serviceProvider.GetRequiredService<NopMessagePublisher>(),
                 };
             });
-        services.AddHostedService<SubscriberHostedService>();
 
         services.AddSingleton<DefaultMessageSubscriber>();
         services.AddSingleton<KeyeventMessageSubscriber>();
