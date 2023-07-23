@@ -11,7 +11,7 @@ internal sealed class KeyspaceMessageSubscriber :
     private static readonly
         Action<ILogger, Exception?> _keyspaceNotificationsMisconfigured =
             LoggerMessage.Define(
-                LogLevel.Warning,
+                LogLevel.Error,
                 new EventId(0),
                 "Failed to verify keyspace notifications config");
 

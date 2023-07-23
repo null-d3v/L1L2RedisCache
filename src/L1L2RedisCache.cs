@@ -18,7 +18,7 @@ public sealed class L1L2RedisCache :
     private static readonly
         Action<ILogger, TimeSpan, Exception?> _subscriberFailed =
             LoggerMessage.Define<TimeSpan>(
-                LogLevel.Warning,
+                LogLevel.Error,
                 new EventId(0),
                 "Failed to initialize subscriber; retrying in {SubscriberRetryDelay}");
 
