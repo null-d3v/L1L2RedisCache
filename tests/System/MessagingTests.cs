@@ -34,6 +34,9 @@ public class MessagingTests
         int iterations,
         MessagingType messagingType)
     {
+        var memoryMessagePublisherSubscriber =
+            new MemoryMessagePublisherSubscriber();
+
         var primaryServices = new ServiceCollection();
         primaryServices.AddSingleton(Configuration);
         primaryServices.AddL1L2RedisCache(options =>
@@ -41,6 +44,10 @@ public class MessagingTests
             Configuration.Bind("L1L2RedisCache", options);
             options.MessagingType = messagingType;
         });
+        primaryServices.AddSingleton<IMessagePublisher>(
+            memoryMessagePublisherSubscriber);
+        primaryServices.AddSingleton<IMessageSubscriber>(
+            memoryMessagePublisherSubscriber);
         var primaryServiceProvider = primaryServices
             .BuildServiceProvider();
 
@@ -49,12 +56,6 @@ public class MessagingTests
         var primaryL1L2CacheOptions = primaryServiceProvider
             .GetRequiredService<IOptions<L1L2RedisCacheOptions>>()
             .Value;
-
-        var primaryMessageSubscriber = primaryServiceProvider
-            .GetRequiredService<IMessageSubscriber>();
-        await primaryMessageSubscriber
-            .SubscribeAsync()
-            .ConfigureAwait(false);
 
         var primaryDatabase = (await primaryL1L2CacheOptions
             .ConnectionMultiplexerFactory!
@@ -89,17 +90,15 @@ public class MessagingTests
             Configuration.Bind("L1L2RedisCache", options);
             options.MessagingType = messagingType;
         });
+        primaryServices.AddSingleton<IMessagePublisher>(
+            memoryMessagePublisherSubscriber);
+        primaryServices.AddSingleton<IMessageSubscriber>(
+            memoryMessagePublisherSubscriber);
         var secondaryServiceProvider = secondaryServices
             .BuildServiceProvider();
 
         var secondaryL1L2Cache = secondaryServiceProvider
             .GetRequiredService<IDistributedCache>();
-
-        var secondaryMessageSubscriber = secondaryServiceProvider
-            .GetRequiredService<IMessageSubscriber>();
-        await secondaryMessageSubscriber
-            .SubscribeAsync()
-            .ConfigureAwait(false);
 
         for (var iteration = 0; iteration < iterations; iteration++)
         {
@@ -117,36 +116,17 @@ public class MessagingTests
                     .GetStringAsync(key)
                     .ConfigureAwait(false));
 
-            await secondaryL1L2Cache
+            await primaryL1L2Cache
                 .RemoveAsync(key)
                 .ConfigureAwait(false);
 
-            var secondaryValue = await primaryL1L2Cache
-                .GetStringAsync(key)
-                .ConfigureAwait(false);
-            var attempts = 1;
-            while (attempts < 25 && secondaryValue != null)
-            {
-                attempts++;
-                await Task
-                    .Delay(250)
-                    .ConfigureAwait(false);
-                secondaryValue = await primaryL1L2Cache
-                    .GetStringAsync(key)
-                    .ConfigureAwait(false);
-            }
-
-            Assert.Null(secondaryValue);
+            Assert.Contains(
+                key,
+                memoryMessagePublisherSubscriber.PublishedKeys);
         }
 
-        await primaryMessageSubscriber
-            .UnsubscribeAsync()
-            .ConfigureAwait(false);
         await primaryServiceProvider
             .DisposeAsync()
-            .ConfigureAwait(false);
-        await secondaryMessageSubscriber
-            .UnsubscribeAsync()
             .ConfigureAwait(false);
         await secondaryServiceProvider
             .DisposeAsync()
