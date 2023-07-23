@@ -37,7 +37,7 @@ public class L1L2RedisCacheTests
             .Returns<RedisKey, CommandFlags>(
                 (k, cF) =>
                 {
-                    var key = (k.ToString())[
+                    var key = k.ToString()[
                         (L1L2RedisCacheOptions?.InstanceName?.Length ?? 0)..];
                     var value = L2Cache.Get(key);
                     return new HashEntry[]

@@ -10,7 +10,10 @@ namespace L1L2RedisCache;
 /// <summary>
 /// A distributed cache implementation using both memory and Redis.
 /// </summary>
-public class L1L2RedisCache : IDistributedCache
+public sealed class L1L2RedisCache :
+    IAsyncDisposable,
+    IDisposable,
+    IDistributedCache
 {
     private static readonly
         Action<ILogger, TimeSpan, Exception?> _subscriberFailed =
@@ -100,6 +103,37 @@ public class L1L2RedisCache : IDistributedCache
     /// The pub/sub subscriber.
     /// </summary>
     public IMessageSubscriber MessageSubscriber { get; }
+
+    private bool IsDisposed { get; set; }
+    private bool IsDisposedAsync { get; set; }
+
+    /// <summary>
+    /// Releases all resources used by the current instance.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases all resources used by the current instance.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (IsDisposed || IsDisposedAsync)
+        {
+            return;
+        }
+
+        await MessageSubscriber
+            .UnsubscribeAsync()
+            .ConfigureAwait(false);
+
+        Dispose(true);
+
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     /// Gets a value with the given key.
@@ -354,6 +388,25 @@ public class L1L2RedisCache : IDistributedCache
         {
             semaphore.Release();
         }
+    }
+
+    private void Dispose(bool isDisposing)
+    {
+        if (!IsDisposed)
+        {
+            return;
+        }
+
+        if (isDisposing && !IsDisposedAsync)
+        {
+            DisposeAsync()
+                .AsTask()
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        IsDisposed = true;
     }
 
     private HashEntry[] GetHashEntries(string key)
