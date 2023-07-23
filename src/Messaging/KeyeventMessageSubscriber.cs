@@ -58,45 +58,45 @@ internal sealed class KeyeventMessageSubscriber :
             .ConfigureAwait(false))
             .GetSubscriber();
 
-        await subscriber
+        (await subscriber
             .SubscribeAsync(
                 new RedisChannel(
                     "__keyevent@*__:del",
-                    RedisChannel.PatternMode.Pattern),
-                (channel, message) =>
+                    RedisChannel.PatternMode.Pattern))
+            .ConfigureAwait(false))
+            .OnMessage(channelMessage =>
+            {
+                if (channelMessage.Message.StartsWith(
+                        L1L2RedisCacheOptions.KeyPrefix))
                 {
-                    if (message.StartsWith(
-                            L1L2RedisCacheOptions.KeyPrefix))
-                    {
-                        var key = message
-                            .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
-                        L1Cache.Remove(
-                            $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-                        L1Cache.Remove(
-                            $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
-                    }
-                })
-            .ConfigureAwait(false);
+                    var key = channelMessage.Message
+                        .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
+                    L1Cache.Remove(
+                        $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
+                    L1Cache.Remove(
+                        $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
+                }
+            });
 
-        await subscriber
+        (await subscriber
             .SubscribeAsync(
                 new RedisChannel(
                     "__keyevent@*__:hset",
-                    RedisChannel.PatternMode.Pattern),
-                (channel, message) =>
+                    RedisChannel.PatternMode.Pattern))
+            .ConfigureAwait(false))
+            .OnMessage(channelMessage =>
+            {
+                if (channelMessage.Message.StartsWith(
+                        L1L2RedisCacheOptions.KeyPrefix))
                 {
-                    if (message.StartsWith(
-                            L1L2RedisCacheOptions.KeyPrefix))
-                    {
-                        var key = message
-                            .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
-                        L1Cache.Remove(
-                            $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-                        L1Cache.Remove(
-                            $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
-                    }
-                })
-            .ConfigureAwait(false);
+                    var key = channelMessage.Message
+                        .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
+                    L1Cache.Remove(
+                        $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
+                    L1Cache.Remove(
+                        $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
+                }
+            });
     }
 
     public async Task UnsubscribeAsync(

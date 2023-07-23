@@ -117,11 +117,11 @@ public class MessagingTests
                     .GetStringAsync(key)
                     .ConfigureAwait(false));
 
-            await primaryL1L2Cache
+            await secondaryL1L2Cache
                 .RemoveAsync(key)
                 .ConfigureAwait(false);
 
-            var secondaryValue = await secondaryL1L2Cache
+            var secondaryValue = await primaryL1L2Cache
                 .GetStringAsync(key)
                 .ConfigureAwait(false);
             var attempts = 1;
@@ -129,9 +129,9 @@ public class MessagingTests
             {
                 attempts++;
                 await Task
-                    .Delay(25)
+                    .Delay(250)
                     .ConfigureAwait(false);
-                secondaryValue = await secondaryL1L2Cache
+                secondaryValue = await primaryL1L2Cache
                     .GetStringAsync(key)
                     .ConfigureAwait(false);
             }

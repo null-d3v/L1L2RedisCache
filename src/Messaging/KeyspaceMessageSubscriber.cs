@@ -58,31 +58,31 @@ internal sealed class KeyspaceMessageSubscriber :
             .ConfigureAwait(false))
             .GetSubscriber();
 
-        await subscriber
+        (await subscriber
             .SubscribeAsync(
                 new RedisChannel(
                     "__keyspace@*__:*",
-                    RedisChannel.PatternMode.Pattern),
-                (channel, message) =>
+                    RedisChannel.PatternMode.Pattern))
+            .ConfigureAwait(false))
+            .OnMessage(channelMessage =>
+            {
+                if (channelMessage.Message == "del" ||
+                    channelMessage.Message == "hset")
                 {
-                    if (message == "del" ||
-                        message == "hset")
+                    var keyPrefixIndex = channelMessage.Channel.ToString().IndexOf(
+                        L1L2RedisCacheOptions.KeyPrefix,
+                        StringComparison.Ordinal);
+                    if (keyPrefixIndex != -1)
                     {
-                        var keyPrefixIndex = channel.ToString().IndexOf(
-                            L1L2RedisCacheOptions.KeyPrefix,
-                            StringComparison.Ordinal);
-                        if (keyPrefixIndex != -1)
-                        {
-                            var key = channel.ToString()[
-                                (keyPrefixIndex + L1L2RedisCacheOptions.KeyPrefix.Length)..];
-                            L1Cache.Remove(
-                                $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-                            L1Cache.Remove(
-                                $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
-                        }
+                        var key = channelMessage.Channel.ToString()[
+                            (keyPrefixIndex + L1L2RedisCacheOptions.KeyPrefix.Length)..];
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
+                        L1Cache.Remove(
+                            $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
                     }
-                })
-            .ConfigureAwait(false);
+                }
+            });
     }
 
     public async Task UnsubscribeAsync(
