@@ -26,7 +26,7 @@ public class MessagingTests
     public IConfiguration Configuration { get; }
     public IDictionary<MessagingType, string> NotifyKeyspaceEventsConfig { get; }
 
-    [DataRow(100, MessagingType.Default)]
+    [DataRow(0, MessagingType.Default)]
     [DataRow(100, MessagingType.KeyeventNotifications)]
     [DataRow(100, MessagingType.KeyspaceNotifications)]
     [TestMethod]
