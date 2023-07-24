@@ -26,7 +26,7 @@ public class MessagingTests
     public IConfiguration Configuration { get; }
     public IDictionary<MessagingType, string> NotifyKeyspaceEventsConfig { get; }
 
-    [DataRow(0, MessagingType.Default)]
+    [DataRow(100, MessagingType.Default)]
     [DataRow(100, MessagingType.KeyeventNotifications)]
     [DataRow(100, MessagingType.KeyspaceNotifications)]
     [TestMethod]
@@ -50,7 +50,7 @@ public class MessagingTests
             .GetRequiredService<IOptions<L1L2RedisCacheOptions>>()
             .Value;
 
-        await SetAndVerifyConfiguration(
+        await SetAndVerifyConfigurationAsync(
             primaryServiceProvider,
             messagingType)
             .ConfigureAwait(false);
@@ -65,8 +65,24 @@ public class MessagingTests
         var secondaryServiceProvider = secondaryServices
             .BuildServiceProvider();
 
+        var secondaryMessageSubscriber = secondaryServiceProvider
+            .GetRequiredService<IMessageSubscriber>();
+        using var messageAutoResetEvent = new AutoResetEvent(false);
+        secondaryMessageSubscriber.OnMessage += (sender, e) =>
+        {
+            messageAutoResetEvent.Set();
+        };
+        secondaryMessageSubscriber.OnSubscribe += (sender, e) =>
+        {
+            messageAutoResetEvent.Set();
+        };
+
         var secondaryL1L2Cache = secondaryServiceProvider
             .GetRequiredService<IDistributedCache>();
+
+        Assert.IsTrue(
+            messageAutoResetEvent
+                .WaitOne(TimeSpan.FromSeconds(5)));
 
         for (var iteration = 0; iteration < iterations; iteration++)
         {
@@ -78,6 +94,10 @@ public class MessagingTests
                     key, value)
                 .ConfigureAwait(false);
 
+            Assert.IsTrue(
+                messageAutoResetEvent
+                    .WaitOne(TimeSpan.FromSeconds(5)));
+
             Assert.AreEqual(
                 value,
                 await secondaryL1L2Cache
@@ -87,9 +107,10 @@ public class MessagingTests
             await primaryL1L2Cache
                 .RemoveAsync(key)
                 .ConfigureAwait(false);
-            await Task
-                .Delay(25)
-                .ConfigureAwait(false);
+
+            Assert.IsTrue(
+                messageAutoResetEvent
+                    .WaitOne(TimeSpan.FromSeconds(5)));
 
             Assert.IsNull(
                 await secondaryL1L2Cache
@@ -105,7 +126,7 @@ public class MessagingTests
             .ConfigureAwait(false);
     }
 
-    private async Task SetAndVerifyConfiguration(
+    private async Task SetAndVerifyConfigurationAsync(
         IServiceProvider serviceProvider,
         MessagingType messagingType)
     {

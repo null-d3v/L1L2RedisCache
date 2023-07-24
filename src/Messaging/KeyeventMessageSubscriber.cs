@@ -5,7 +5,7 @@ using StackExchange.Redis;
 
 namespace L1L2RedisCache;
 
-internal sealed class KeyeventMessageSubscriber :
+internal class KeyeventMessageSubscriber :
     IMessageSubscriber
 {
     private static readonly
@@ -32,6 +32,8 @@ internal sealed class KeyeventMessageSubscriber :
     public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; }
     public IMemoryCache L1Cache { get; set; }
     public ILogger<KeyeventMessageSubscriber>? Logger { get; set; }
+    public EventHandler<OnMessageEventArgs>? OnMessage { get; set; }
+    public EventHandler? OnSubscribe { get; set; }
 
     public async Task SubscribeAsync(
         CancellationToken cancellationToken = default)
@@ -60,39 +62,23 @@ internal sealed class KeyeventMessageSubscriber :
 
         await subscriber
             .SubscribeAsync(
-                "__keyevent@*__:del",
-                (channel, message) =>
-                {
-                    if (message.StartsWith(
-                            L1L2RedisCacheOptions.KeyPrefix))
-                    {
-                        var key = message
-                            .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
-                        L1Cache.Remove(
-                            $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-                        L1Cache.Remove(
-                            $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
-                    }
-                })
+                new RedisChannel(
+                    "__keyevent@*__:del",
+                    RedisChannel.PatternMode.Pattern),
+                ProcessMessage)
             .ConfigureAwait(false);
 
         await subscriber
             .SubscribeAsync(
-                "__keyevent@*__:hset",
-                (channel, message) =>
-                {
-                    if (message.StartsWith(
-                            L1L2RedisCacheOptions.KeyPrefix))
-                    {
-                        var key = message
-                            .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
-                        L1Cache.Remove(
-                            $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-                        L1Cache.Remove(
-                            $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
-                    }
-                })
+                new RedisChannel(
+                    "__keyevent@*__:hset",
+                    RedisChannel.PatternMode.Pattern),
+                ProcessMessage)
             .ConfigureAwait(false);
+
+        OnSubscribe?.Invoke(
+            this,
+            EventArgs.Empty);
     }
 
     public async Task UnsubscribeAsync(
@@ -116,5 +102,25 @@ internal sealed class KeyeventMessageSubscriber :
                     "__keyevent@*__:hset",
                     RedisChannel.PatternMode.Pattern))
             .ConfigureAwait(false);
+    }
+
+    internal void ProcessMessage(
+        RedisChannel channel,
+        RedisValue message)
+    {
+        if (message.StartsWith(
+                L1L2RedisCacheOptions.KeyPrefix))
+        {
+            var key = message
+                .ToString()[L1L2RedisCacheOptions.KeyPrefix.Length..];
+            L1Cache.Remove(
+                $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
+            L1Cache.Remove(
+                $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
+
+            OnMessage?.Invoke(
+                this,
+                new OnMessageEventArgs(key));
+        }
     }
 }

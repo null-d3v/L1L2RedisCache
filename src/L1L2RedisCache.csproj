@@ -20,4 +20,8 @@
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="7.0.*" />
     <PackageReference Include="System.Text.Json" Version="7.0.*" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="L1L2RedisCache.Tests.System" />
+    <InternalsVisibleTo Include="L1L2RedisCache.Tests.Unit" />
+  </ItemGroup>
 </Project>

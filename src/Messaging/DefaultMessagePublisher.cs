@@ -8,10 +8,10 @@ internal sealed class DefaultMessagePublisher :
     IMessagePublisher
 {
     public DefaultMessagePublisher(
-        IOptions<JsonSerializerOptions> jsonSerializerOptions,
+        IOptions<JsonSerializerOptions> jsonSerializerOptionsAccessor,
         IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor)
     {
-        JsonSerializerOptions = jsonSerializerOptions.Value;
+        JsonSerializerOptions = jsonSerializerOptionsAccessor.Value;
         L1L2RedisCacheOptions = l1L2RedisCacheOptionsOptionsAccessor.Value;
 
         Subscriber = new Lazy<ISubscriber>(() =>
