@@ -1,9 +1,0 @@
-<RunConfiguration>
-  <MaxCpuCount>16</MaxCpuCount>
-  <TreatNoTestsAsError>true</TreatNoTestsAsError>
-  <MSTest>
-    <Parallelize>
-      <Workers>16</Workers>
-    </Parallelize>
-  </MSTest>
-</RunConfiguration>
