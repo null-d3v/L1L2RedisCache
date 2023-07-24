@@ -8,10 +8,10 @@ internal sealed class DefaultMessagePublisher :
     IMessagePublisher
 {
     public DefaultMessagePublisher(
-        IOptions<JsonSerializerOptions> jsonSerializerOptions,
+        IOptions<JsonSerializerOptions> jsonSerializerOptionsAccessor,
         IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor)
     {
-        JsonSerializerOptions = jsonSerializerOptions.Value;
+        JsonSerializerOptions = jsonSerializerOptionsAccessor.Value;
         L1L2RedisCacheOptions = l1L2RedisCacheOptionsOptionsAccessor.Value;
 
         Subscriber = new Lazy<ISubscriber>(() =>
@@ -31,7 +31,9 @@ internal sealed class DefaultMessagePublisher :
     public void Publish(string key)
     {
         Subscriber.Value.Publish(
-            L1L2RedisCacheOptions.Channel,
+            new RedisChannel(
+                L1L2RedisCacheOptions.Channel,
+                RedisChannel.PatternMode.Literal),
             JsonSerializer.Serialize(
                 new CacheMessage
                 {
@@ -47,7 +49,9 @@ internal sealed class DefaultMessagePublisher :
     {
         await Subscriber.Value
             .PublishAsync(
-                L1L2RedisCacheOptions.Channel,
+                new RedisChannel(
+                    L1L2RedisCacheOptions.Channel,
+                    RedisChannel.PatternMode.Literal),
                 JsonSerializer.Serialize(
                     new CacheMessage
                     {

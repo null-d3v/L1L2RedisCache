@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using System.Diagnostics.CodeAnalysis;
@@ -9,8 +10,18 @@ namespace L1L2RedisCache;
 /// <summary>
 /// A distributed cache implementation using both memory and Redis.
 /// </summary>
-public class L1L2RedisCache : IDistributedCache
+public sealed class L1L2RedisCache :
+    IAsyncDisposable,
+    IDisposable,
+    IDistributedCache
 {
+    private static readonly
+        Action<ILogger, TimeSpan, Exception?> _subscriberFailed =
+            LoggerMessage.Define<TimeSpan>(
+                LogLevel.Error,
+                new EventId(0),
+                "Failed to initialize subscriber; retrying in {SubscriberRetryDelay}");
+
     /// <summary>
     /// Initializes a new instance of L1L2RedisCache.
     /// </summary>
@@ -19,7 +30,8 @@ public class L1L2RedisCache : IDistributedCache
         IOptions<L1L2RedisCacheOptions> l1l2RedisCacheOptionsAccessor,
         Func<IDistributedCache> l2CacheAccessor,
         IMessagePublisher messagePublisher,
-        IMessageSubscriber messageSubscriber)
+        IMessageSubscriber messageSubscriber,
+        ILogger<L1L2RedisCache>? logger = null)
     {
         if (l1l2RedisCacheOptionsAccessor == null)
         {
@@ -35,6 +47,7 @@ public class L1L2RedisCache : IDistributedCache
         L1Cache = l1Cache;
         L1L2RedisCacheOptions = l1l2RedisCacheOptionsAccessor.Value;
         L2Cache = l2CacheAccessor();
+        Logger = logger;
         MessagePublisher = messagePublisher;
         MessageSubscriber = messageSubscriber;
 
@@ -48,9 +61,11 @@ public class L1L2RedisCache : IDistributedCache
                     L1L2RedisCacheOptions
                         .ConfigurationOptions?
                         .DefaultDatabase ?? -1) ??
-                throw new InvalidOperationException());
+                    throw new InvalidOperationException());
 
-        MessageSubscriber.Subscribe();
+        SubscribeCancellationTokenSource = new CancellationTokenSource();
+        _ = SubscribeAsync(
+            SubscribeCancellationTokenSource.Token);
     }
 
     private static SemaphoreSlim KeySemaphore { get; } =
@@ -77,6 +92,11 @@ public class L1L2RedisCache : IDistributedCache
     public IDistributedCache L2Cache { get; }
 
     /// <summary>
+    /// Optional. The logger.
+    /// </summary>
+    public ILogger<L1L2RedisCache>? Logger { get; }
+
+    /// <summary>
     /// The pub/sub publisher.
     /// </summary>
     public IMessagePublisher MessagePublisher { get; }
@@ -85,6 +105,39 @@ public class L1L2RedisCache : IDistributedCache
     /// The pub/sub subscriber.
     /// </summary>
     public IMessageSubscriber MessageSubscriber { get; }
+
+    private bool IsDisposed { get; set; }
+    private bool IsDisposedAsync { get; set; }
+    private CancellationTokenSource SubscribeCancellationTokenSource { get; set; }
+
+    /// <summary>
+    /// Releases all resources used by the current instance.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases all resources used by the current instance.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (IsDisposed || IsDisposedAsync)
+        {
+            return;
+        }
+
+        SubscribeCancellationTokenSource.Dispose();
+        await MessageSubscriber
+            .UnsubscribeAsync()
+            .ConfigureAwait(false);
+
+        Dispose(true);
+
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     /// Gets a value with the given key.
@@ -255,10 +308,14 @@ public class L1L2RedisCache : IDistributedCache
             .ConfigureAwait(false);
         try
         {
-            L2Cache.Remove(key);
+            await L2Cache
+                .RemoveAsync(key, token)
+                .ConfigureAwait(false);
             L1Cache.Remove(
                 $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-            MessagePublisher.Publish(key);
+            await MessagePublisher
+                .PublishAsync(key, token)
+                .ConfigureAwait(false);
             L1Cache.Remove(
                 $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
         }
@@ -339,6 +396,25 @@ public class L1L2RedisCache : IDistributedCache
         {
             semaphore.Release();
         }
+    }
+
+    private void Dispose(bool isDisposing)
+    {
+        if (!IsDisposed)
+        {
+            return;
+        }
+
+        if (isDisposing && !IsDisposedAsync)
+        {
+            DisposeAsync()
+                .AsTask()
+                .ConfigureAwait(false)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        IsDisposed = true;
     }
 
     private HashEntry[] GetHashEntries(string key)
@@ -473,6 +549,40 @@ public class L1L2RedisCache : IDistributedCache
                 $"{L1L2RedisCacheOptions.KeyPrefix}{key}",
                 value,
                 memoryCacheEntryOptions);
+        }
+    }
+
+    private async Task SubscribeAsync(
+        CancellationToken cancellationToken = default)
+    {
+        while (true)
+        {
+            try
+            {
+                await MessageSubscriber
+                    .SubscribeAsync(
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                break;
+            }
+            catch (RedisConnectionException redisConnectionException)
+            {
+                if (Logger != null)
+                {
+                    _subscriberFailed(
+                        Logger,
+                        L1L2RedisCacheOptions
+                            .SubscriberRetryDelay,
+                        redisConnectionException);
+                }
+
+                await Task
+                    .Delay(
+                        L1L2RedisCacheOptions
+                            .SubscriberRetryDelay,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
         }
     }
 }

@@ -1,9 +1,9 @@
 namespace L1L2RedisCache;
 
-internal sealed class NoopMessagePublisher :
+internal sealed class NopMessagePublisher :
     IMessagePublisher
 {
-    public NoopMessagePublisher() { }
+    public NopMessagePublisher() { }
 
     public void Publish(string key) { }
 

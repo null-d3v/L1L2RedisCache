@@ -32,13 +32,19 @@ public sealed class L1L2RedisCacheOptions :
     /// <summary>
     /// A prefix to be applied to all L1 lock cache keys.
     /// </summary>
-    public string LockKeyPrefix => $"{Id}:{KeyPrefix}";
+    public string LockKeyPrefix => $"{KeyPrefix}{Id}";
 
     /// <summary>
     /// The type of messaging to use for L1 memory cache eviction.
     /// </summary>
     public MessagingType MessagingType { get; set; } =
         MessagingType.Default;
+
+    /// <summary>
+    /// The duration of time to delay before retrying subscriber intialization.
+    /// </summary>
+    public TimeSpan SubscriberRetryDelay { get; set; } =
+        TimeSpan.FromSeconds(5);
 
     L1L2RedisCacheOptions IOptions<L1L2RedisCacheOptions>.Value => this;
 }

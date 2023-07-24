@@ -62,7 +62,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IConfigurationVerifier, ConfigurationVerifier>();
 
         services.AddSingleton<DefaultMessagePublisher>();
-        services.AddSingleton<NoopMessagePublisher>();
+        services.AddSingleton<NopMessagePublisher>();
         services.AddSingleton<IMessagePublisher>(
             serviceProvider =>
             {
@@ -75,7 +75,7 @@ public static class ServiceCollectionExtensions
                     MessagingType.Default =>
                         serviceProvider.GetRequiredService<DefaultMessagePublisher>(),
                     _ =>
-                        serviceProvider.GetRequiredService<NoopMessagePublisher>(),
+                        serviceProvider.GetRequiredService<NopMessagePublisher>(),
                 };
             });
 

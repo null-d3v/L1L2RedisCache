@@ -8,13 +8,20 @@
     <LangVersion>latest</LangVersion>
     <NoWarn>CA1724;CA1812;</NoWarn>
     <Nullable>enable</Nullable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <TargetFramework>netstandard2.1</TargetFramework>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="7.0.*" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="7.0.*" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="7.0.*" />
-    <PackageReference Include="StackExchange.Redis" Version="2.6.*" />
     <PackageReference Include="System.Text.Json" Version="7.0.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="L1L2RedisCache.Tests.System" />
+    <InternalsVisibleTo Include="L1L2RedisCache.Tests.Unit" />
   </ItemGroup>
 </Project>

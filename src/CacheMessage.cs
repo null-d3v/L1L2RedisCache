@@ -8,10 +8,10 @@ public class CacheMessage
     /// <summary>
     /// The cache key of the value that has changed.
     /// </summary>
-    public string? Key { get; set; }
+    public string Key { get; set; } = default!;
 
     /// <summary>
-    /// The unique publisher identifier  of the cache that changed the value.
+    /// The unique publisher identifier of the cache that changed the value.
     /// </summary>
     public Guid PublisherId { get; set; }
 }
