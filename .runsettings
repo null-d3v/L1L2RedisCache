@@ -1,0 +1,9 @@
+<RunConfiguration>
+  <MaxCpuCount>8</MaxCpuCount>
+  <TreatNoTestsAsError>true</TreatNoTestsAsError>
+  <MSTest>
+    <Parallelize>
+      <Workers>8</Workers>
+    </Parallelize>
+  </MSTest>
+</RunConfiguration>
