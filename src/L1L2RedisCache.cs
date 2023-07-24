@@ -63,9 +63,7 @@ public sealed class L1L2RedisCache :
                         .DefaultDatabase ?? -1) ??
                     throw new InvalidOperationException());
 
-        SubscribeCancellationTokenSource = new CancellationTokenSource();
-        _ = SubscribeAsync(
-            SubscribeCancellationTokenSource.Token);
+        _ = SubscribeAsync();
     }
 
     private static SemaphoreSlim KeySemaphore { get; } =
@@ -106,7 +104,6 @@ public sealed class L1L2RedisCache :
     /// </summary>
     public IMessageSubscriber MessageSubscriber { get; }
 
-    private CancellationTokenSource SubscribeCancellationTokenSource { get; set; }
     private bool IsDisposed { get; set; }
     private bool IsDisposedAsync { get; set; }
 
@@ -129,7 +126,6 @@ public sealed class L1L2RedisCache :
             return;
         }
 
-        SubscribeCancellationTokenSource.Dispose();
         await MessageSubscriber
             .UnsubscribeAsync()
             .ConfigureAwait(false);
