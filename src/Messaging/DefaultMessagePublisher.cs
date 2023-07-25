@@ -13,24 +13,18 @@ internal sealed class DefaultMessagePublisher :
     {
         JsonSerializerOptions = jsonSerializerOptionsAccessor.Value;
         L1L2RedisCacheOptions = l1L2RedisCacheOptionsOptionsAccessor.Value;
-
-        Subscriber = new Lazy<ISubscriber>(() =>
-            L1L2RedisCacheOptions
-                .ConnectionMultiplexerFactory?
-                .Invoke()
-                .GetAwaiter()
-                .GetResult()
-                .GetSubscriber() ??
-                throw new InvalidOperationException());
     }
 
     public JsonSerializerOptions JsonSerializerOptions { get; set; }
     public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; }
-    public Lazy<ISubscriber> Subscriber { get; set; }
 
-    public void Publish(string key)
+    public void Publish(
+        IConnectionMultiplexer connectionMultiplexer,
+        string key)
     {
-        Subscriber.Value.Publish(
+        connectionMultiplexer
+            .GetSubscriber()
+            .Publish(
             new RedisChannel(
                 L1L2RedisCacheOptions.Channel,
                 RedisChannel.PatternMode.Literal),
@@ -44,10 +38,12 @@ internal sealed class DefaultMessagePublisher :
     }
 
     public async Task PublishAsync(
+        IConnectionMultiplexer connectionMultiplexer,
         string key,
         CancellationToken cancellationToken = default)
     {
-        await Subscriber.Value
+        await connectionMultiplexer
+            .GetSubscriber()
             .PublishAsync(
                 new RedisChannel(
                     L1L2RedisCacheOptions.Channel,

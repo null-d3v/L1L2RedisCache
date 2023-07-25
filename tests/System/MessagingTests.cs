@@ -2,11 +2,11 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace L1L2RedisCache.Tests.System;
 
-[TestClass]
+[Collection("System")]
 public class MessagingTests
 {
     public MessagingTests()
@@ -15,21 +15,16 @@ public class MessagingTests
             .AddJsonFile("appsettings.json")
             .AddEnvironmentVariables()
             .Build();
-        NotifyKeyspaceEventsConfig = new Dictionary<MessagingType, string>
-        {
-            { MessagingType.Default, string.Empty },
-            { MessagingType.KeyeventNotifications, "ghE" },
-            { MessagingType.KeyspaceNotifications, "ghK" },
-        };
+        EventTimeout = TimeSpan.FromSeconds(5);
     }
 
     public IConfiguration Configuration { get; }
-    public IDictionary<MessagingType, string> NotifyKeyspaceEventsConfig { get; }
+    public TimeSpan EventTimeout { get; }
 
-    [DataRow(0, MessagingType.Default)]
-    [DataRow(100, MessagingType.KeyeventNotifications)]
-    [DataRow(100, MessagingType.KeyspaceNotifications)]
-    [TestMethod]
+    [InlineData(100, MessagingType.Default)]
+    [InlineData(100, MessagingType.KeyeventNotifications)]
+    [InlineData(100, MessagingType.KeyspaceNotifications)]
+    [Theory]
     public async Task MessagingTypeTest(
         int iterations,
         MessagingType messagingType)
@@ -41,7 +36,7 @@ public class MessagingTests
             Configuration.Bind("L1L2RedisCache", options);
             options.MessagingType = messagingType;
         });
-        var primaryServiceProvider = primaryServices
+        using var primaryServiceProvider = primaryServices
             .BuildServiceProvider();
 
         var primaryL1L2Cache = primaryServiceProvider
@@ -62,102 +57,99 @@ public class MessagingTests
             Configuration.Bind("L1L2RedisCache", options);
             options.MessagingType = messagingType;
         });
-        var secondaryServiceProvider = secondaryServices
+        using var secondaryServiceProvider = secondaryServices
             .BuildServiceProvider();
 
         var secondaryMessageSubscriber = secondaryServiceProvider
             .GetRequiredService<IMessageSubscriber>();
         using var messageAutoResetEvent = new AutoResetEvent(false);
+        using var subscribeAutoResetEvent = new AutoResetEvent(false);
         secondaryMessageSubscriber.OnMessage += (sender, e) =>
         {
             messageAutoResetEvent.Set();
         };
         secondaryMessageSubscriber.OnSubscribe += (sender, e) =>
         {
-            messageAutoResetEvent.Set();
+            subscribeAutoResetEvent.Set();
         };
 
         var secondaryL1L2Cache = secondaryServiceProvider
             .GetRequiredService<IDistributedCache>();
 
-        Assert.IsTrue(
-            messageAutoResetEvent
-                .WaitOne(TimeSpan.FromSeconds(5)));
+        Assert.True(
+            subscribeAutoResetEvent
+                .WaitOne(EventTimeout));
 
         for (var iteration = 0; iteration < iterations; iteration++)
         {
             var key = Guid.NewGuid().ToString();
             var value = Guid.NewGuid().ToString();
 
+            // L1 population via L2
             await primaryL1L2Cache
                 .SetStringAsync(
                     key, value)
                 .ConfigureAwait(false);
-
-            Assert.IsTrue(
+            Assert.True(
                 messageAutoResetEvent
-                    .WaitOne(TimeSpan.FromSeconds(5)));
-
-            Assert.AreEqual(
+                    .WaitOne(EventTimeout));
+            Assert.Equal(
                 value,
                 await secondaryL1L2Cache
                     .GetStringAsync(key)
                     .ConfigureAwait(false));
 
+            // L1 eviction via set
+            // L1 population via L2
+            await primaryL1L2Cache
+                .SetStringAsync(
+                    key, value)
+                .ConfigureAwait(false);
+            Assert.True(
+                messageAutoResetEvent
+                    .WaitOne(EventTimeout));
+            Assert.Equal(
+                value,
+                await secondaryL1L2Cache
+                    .GetStringAsync(key)
+                    .ConfigureAwait(false));
+
+            // L1 eviction via remove
             await primaryL1L2Cache
                 .RemoveAsync(key)
                 .ConfigureAwait(false);
-
-            Assert.IsTrue(
+            Assert.True(
                 messageAutoResetEvent
-                    .WaitOne(TimeSpan.FromSeconds(5)));
-
-            Assert.IsNull(
+                    .WaitOne(EventTimeout));
+            Assert.Null(
                 await secondaryL1L2Cache
                     .GetStringAsync(key)
                     .ConfigureAwait(false));
         }
-
-        await primaryServiceProvider
-            .DisposeAsync()
-            .ConfigureAwait(false);
-        await secondaryServiceProvider
-            .DisposeAsync()
-            .ConfigureAwait(false);
     }
 
-    private async Task SetAndVerifyConfigurationAsync(
+    private static async Task SetAndVerifyConfigurationAsync(
         IServiceProvider serviceProvider,
         MessagingType messagingType)
     {
-        var l1L2CacheOptions = serviceProvider
-            .GetRequiredService<IOptions<L1L2RedisCacheOptions>>()
-            .Value;
+        var l1L2Cache = serviceProvider
+            .GetRequiredService<IDistributedCache>() as L1L2RedisCache;
 
-        var database = (await l1L2CacheOptions
-            .ConnectionMultiplexerFactory!
-            .Invoke()
-            .ConfigureAwait(false))
-            .GetDatabase(
-                l1L2CacheOptions
-                    .ConfigurationOptions?
-                    .DefaultDatabase ?? -1);
-        await database
+        await l1L2Cache!.Database.Value
             .ExecuteAsync(
                 "config",
                 "set",
                 "notify-keyspace-events",
-                NotifyKeyspaceEventsConfig[messagingType])
+                MessagingConfigurationVerifier
+                    .NotifyKeyspaceEventsConfig[messagingType])
             .ConfigureAwait(false);
 
         var configurationVerifier = serviceProvider
-            .GetRequiredService<IConfigurationVerifier>();
-        Assert.IsTrue(
+            .GetRequiredService<IMessagingConfigurationVerifier>();
+        Assert.True(
             await configurationVerifier
                 .VerifyConfigurationAsync(
-                    "notify-keyspace-events",
-                    CancellationToken.None,
-                    NotifyKeyspaceEventsConfig[messagingType])
+                    l1L2Cache.Database.Value)
                 .ConfigureAwait(false));
     }
 }

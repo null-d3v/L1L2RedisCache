@@ -1,13 +1,16 @@
+using StackExchange.Redis;
+
 namespace L1L2RedisCache;
 
 internal sealed class NopMessagePublisher :
     IMessagePublisher
 {
-    public NopMessagePublisher() { }
-
-    public void Publish(string key) { }
+    public void Publish(
+        IConnectionMultiplexer connectionMultiplexer,
+        string key) { }
 
     public Task PublishAsync(
+        IConnectionMultiplexer connectionMultiplexer,
         string key,
         CancellationToken cancellationToken = default)
     {

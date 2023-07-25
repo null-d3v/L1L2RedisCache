@@ -59,7 +59,7 @@ public static class ServiceCollectionExtensions
                 () => new RedisCache(
                     serviceProvider.GetRequiredService<IOptions<L1L2RedisCacheOptions>>())));
         services.AddSingleton<IDistributedCache, L1L2RedisCache.L1L2RedisCache>();
-        services.AddSingleton<IConfigurationVerifier, ConfigurationVerifier>();
+        services.AddSingleton<IMessagingConfigurationVerifier, MessagingConfigurationVerifier>();
 
         services.AddSingleton<DefaultMessagePublisher>();
         services.AddSingleton<NopMessagePublisher>();

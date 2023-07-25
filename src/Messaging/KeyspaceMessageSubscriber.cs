@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 
@@ -8,59 +7,25 @@ namespace L1L2RedisCache;
 internal class KeyspaceMessageSubscriber :
     IMessageSubscriber
 {
-    private static readonly
-        Action<ILogger, Exception?> _keyspaceNotificationsMisconfigured =
-            LoggerMessage.Define(
-                LogLevel.Error,
-                new EventId(0),
-                "Failed to verify keyspace notifications config");
-
     public KeyspaceMessageSubscriber(
-        IConfigurationVerifier configurationVerifier,
         IMemoryCache l1Cache,
-        IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor,
-        ILogger<KeyspaceMessageSubscriber>? logger = null)
+        IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor)
     {
-        ConfigurationVerifier = configurationVerifier;
         L1Cache = l1Cache;
         L1L2RedisCacheOptions = l1L2RedisCacheOptionsOptionsAccessor.Value;
-
-        Logger = logger;
     }
 
-    public IConfigurationVerifier ConfigurationVerifier { get; set; }
     public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; }
     public IMemoryCache L1Cache { get; set; }
-    public ILogger<KeyspaceMessageSubscriber>? Logger { get; set; }
     public EventHandler<OnMessageEventArgs>? OnMessage { get; set; }
     public EventHandler? OnSubscribe { get; set; }
 
     public async Task SubscribeAsync(
+        IConnectionMultiplexer connectionMultiplexer,
         CancellationToken cancellationToken = default)
     {
-        if (!await ConfigurationVerifier
-                .VerifyConfigurationAsync(
-                    "notify-keyspace-events",
-                    cancellationToken,
-                    "g",
-                    "h",
-                    "K")
-                .ConfigureAwait(false))
-        {
-            if (Logger != null)
-            {
-                _keyspaceNotificationsMisconfigured(
-                    Logger,
-                    null);
-            }
-        }
-
-        var subscriber = (await L1L2RedisCacheOptions
-            .ConnectionMultiplexerFactory!()
-            .ConfigureAwait(false))
-            .GetSubscriber();
-
-        await subscriber
+        await connectionMultiplexer
+            .GetSubscriber()
             .SubscribeAsync(
                 new RedisChannel(
                     "__keyspace@*__:*",
@@ -74,14 +39,11 @@ internal class KeyspaceMessageSubscriber :
     }
 
     public async Task UnsubscribeAsync(
+        IConnectionMultiplexer connectionMultiplexer,
         CancellationToken cancellationToken = default)
     {
-        var subscriber = (await L1L2RedisCacheOptions
-            .ConnectionMultiplexerFactory!()
-            .ConfigureAwait(false))
-            .GetSubscriber();
-
-        await subscriber
+        await connectionMultiplexer
+            .GetSubscriber()
             .UnsubscribeAsync(
                 new RedisChannel(
                     "__keyspace@*__:*",

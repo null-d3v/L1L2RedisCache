@@ -1,14 +1,13 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using StackExchange.Redis;
-using System.Text.Json;
+using Xunit;
 
 namespace L1L2RedisCache.Tests.Unit;
 
-[TestClass]
+[Collection("Unit")]
 public class L1L2RedisCacheTests
 {
     public L1L2RedisCacheTests()
@@ -95,26 +94,34 @@ public class L1L2RedisCacheTests
         var mockMessagePublisher = new Mock<IMessagePublisher>();
         mockMessagePublisher
             .Setup(mP => mP.Publish(
+                It.IsAny<IConnectionMultiplexer>(),
                 It.IsAny<string>()));
         mockMessagePublisher
             .Setup(mP => mP.PublishAsync(
+                It.IsAny<IConnectionMultiplexer>(),
                 It.IsAny<string>(),
                 It.IsAny<CancellationToken>()));
 
         var mockMessageSubscriber = new Mock<IMessageSubscriber>();
         mockMessageSubscriber
             .Setup(mS => mS.SubscribeAsync(
+                It.IsAny<IConnectionMultiplexer>(),
                 It.IsAny<CancellationToken>()));
 
-        var jsonSerializerOptions = Options.Create(
-            new JsonSerializerOptions());
+        var mockMessagingConfigurationVerifier =
+            new Mock<IMessagingConfigurationVerifier>();
+        mockMessagingConfigurationVerifier
+            .Setup(mS => mS.VerifyConfigurationAsync(
+                It.IsAny<IDatabase>(),
+                It.IsAny<CancellationToken>()));
 
         L1L2Cache = new L1L2RedisCache(
             L1Cache,
             L1L2RedisCacheOptions,
             new Func<IDistributedCache>(() => L2Cache),
             mockMessagePublisher.Object,
-            mockMessageSubscriber.Object);
+            mockMessageSubscriber.Object,
+            mockMessagingConfigurationVerifier.Object);
     }
 
     public IMemoryCache L1Cache { get; }
@@ -122,7 +129,7 @@ public class L1L2RedisCacheTests
     public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; }
     public IDistributedCache L2Cache { get; }
 
-    [TestMethod]
+    [Fact]
     public async Task GetPropagationTest()
     {
         var key = "key";
@@ -134,19 +141,19 @@ public class L1L2RedisCacheTests
             .SetAsync(key, value)
             .ConfigureAwait(false);
 
-        Assert.IsNull(
+        Assert.Null(
             L1Cache.Get(prefixedKey));
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             await L1L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             L1Cache.Get(prefixedKey));
     }
 
-    [TestMethod]
+    [Fact]
     public void SetTest()
     {
         var key = "key";
@@ -156,18 +163,18 @@ public class L1L2RedisCacheTests
 
         L1L2Cache.Set(key, value);
 
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             L1L2Cache.Get(key));
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             L1Cache.Get(prefixedKey));
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             L2Cache.Get(key));
     }
 
-    [TestMethod]
+    [Fact]
     public void SetRemoveTest()
     {
         var key = "key";
@@ -177,27 +184,27 @@ public class L1L2RedisCacheTests
 
         L1L2Cache.Set(key, value);
 
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             L1L2Cache.Get(key));
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             L1Cache.Get(prefixedKey));
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             L2Cache.Get(key));
 
         L1L2Cache.Remove(key);
 
-        Assert.IsNull(
+        Assert.Null(
             L1L2Cache.Get(key));
-        Assert.IsNull(
+        Assert.Null(
             L1Cache.Get(prefixedKey));
-        Assert.IsNull(
+        Assert.Null(
             L2Cache.Get(key));
     }
 
-    [TestMethod]
+    [Fact]
     public async Task SetAsyncTest()
     {
         var key = "key";
@@ -209,22 +216,22 @@ public class L1L2RedisCacheTests
             .SetAsync(key, value)
             .ConfigureAwait(false);
 
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             await L1L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             L1Cache.Get(prefixedKey));
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             await L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
     }
 
-    [TestMethod]
+    [Fact]
     public async Task SetAsyncRemoveAsyncTest()
     {
         var key = "key";
@@ -236,15 +243,15 @@ public class L1L2RedisCacheTests
             .SetAsync(key, value)
             .ConfigureAwait(false);
 
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             await L1L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             L1Cache.Get(prefixedKey));
-        Assert.AreEqual(
+        Assert.Equal(
             value,
             await L2Cache
                 .GetAsync(key)
@@ -254,13 +261,13 @@ public class L1L2RedisCacheTests
             .RemoveAsync(key)
             .ConfigureAwait(false);
 
-        Assert.IsNull(
+        Assert.Null(
             await L1L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
-        Assert.IsNull(
+        Assert.Null(
             L1Cache.Get(prefixedKey));
-        Assert.IsNull(
+        Assert.Null(
             await L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
