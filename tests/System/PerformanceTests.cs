@@ -2,12 +2,12 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Diagnostics;
+using Xunit;
 
 namespace L1L2RedisCache.Tests.System;
 
-[TestClass]
+[Collection("System")]
 public class PerformanceTests
 {
     public PerformanceTests()
@@ -41,8 +41,8 @@ public class PerformanceTests
     public IDistributedCache L2Cache { get; }
     public Stopwatch Stopwatch { get; }
 
-    [DataRow(10000)]
-    [TestMethod]
+    [InlineData(10000)]
+    [Theory]
     public async Task PerformanceTest(
         int iterations)
     {
@@ -113,15 +113,15 @@ public class PerformanceTests
         Stopwatch.Stop();
         var l1L2GetTicks = Stopwatch.ElapsedTicks;
 
-        Assert.IsTrue(
+        Assert.True(
             l1L2SetTicks / l2SetTicks < 3,
             "L1L2Cache Set cannot perform significantly worse than RedisCache Set.");
 
-        Assert.IsTrue(
+        Assert.True(
             l2GetTicks / l1L2GetTicks > 100,
             "L1L2Cache Get must perform significantly better than RedisCache Get.");
 
-        Assert.IsTrue(
+        Assert.True(
             l1L2GetPropagationTicks / l2GetTicks < 3,
             "L1L2Cache Get with propagation cannot perform significantly worse than RedisCache Get.");
     }

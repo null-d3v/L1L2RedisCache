@@ -25,14 +25,11 @@ internal class DefaultMessageSubscriber :
     public EventHandler? OnSubscribe { get; set; }
 
     public async Task SubscribeAsync(
+        IConnectionMultiplexer connectionMultiplexer,
         CancellationToken cancellationToken = default)
     {
-        var subscriber = (await L1L2RedisCacheOptions
-            .ConnectionMultiplexerFactory!()
-            .ConfigureAwait(false))
-            .GetSubscriber();
-
-        await subscriber
+        await connectionMultiplexer
+            .GetSubscriber()
             .SubscribeAsync(
                 new RedisChannel(
                     L1L2RedisCacheOptions.Channel,
@@ -46,14 +43,11 @@ internal class DefaultMessageSubscriber :
     }
 
     public async Task UnsubscribeAsync(
+        IConnectionMultiplexer connectionMultiplexer,
         CancellationToken cancellationToken = default)
     {
-        var subscriber = (await L1L2RedisCacheOptions
-            .ConnectionMultiplexerFactory!()
-            .ConfigureAwait(false))
-            .GetSubscriber();
-
-        await subscriber
+        await connectionMultiplexer
+            .GetSubscriber()
             .UnsubscribeAsync(
                 new RedisChannel(
                     L1L2RedisCacheOptions.Channel,

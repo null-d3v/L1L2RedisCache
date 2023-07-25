@@ -1,3 +1,5 @@
+using StackExchange.Redis;
+
 namespace L1L2RedisCache;
 
 /// <summary>
@@ -8,16 +10,21 @@ public interface IMessagePublisher
     /// <summary>
     /// Publishes a message indicating a cache value has changed.
     /// </summary>
+    /// <param name="connectionMultiplexer">The <c>StackExchange.Redis.IConnectionMultiplexer</c> for publishing.</param>
     /// <param name="key">The cache key of the value that has changed.</param>
-    void Publish(string key);
+    void Publish(
+        IConnectionMultiplexer connectionMultiplexer,
+        string key);
 
     /// <summary>
     /// Publishes a message indicating a cache value has changed.
     /// </summary>
+    /// <param name="connectionMultiplexer">The <c>StackExchange.Redis.IConnectionMultiplexer</c> for publishing.</param>
     /// <param name="key">The cache key of the value that has changed.</param>
     /// <param name="cancellationToken">Optional. The System.Threading.CancellationToken used to propagate notifications that the operation should be canceled.</param>
     /// <returns>The System.Threading.Tasks.Task that represents the asynchronous operation.</returns>
     Task PublishAsync(
+        IConnectionMultiplexer connectionMultiplexer,
         string key,
         CancellationToken cancellationToken = default);
 }

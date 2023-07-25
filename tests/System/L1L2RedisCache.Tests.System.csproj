@@ -8,6 +8,12 @@
     <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <AssemblyAttribute Include="Xunit.CollectionBehaviorAttribute">
+      <MaxParallelThreads>-1</MaxParallelThreads>
+      <MaxParallelThreads_TypeName>System.Int32</MaxParallelThreads_TypeName>
+    </AssemblyAttribute>
+  </ItemGroup>
+  <ItemGroup>
     <None CopyToOutputDirectory="PreserveNewest" Include="appsettings.json" />
   </ItemGroup>
   <ItemGroup>
@@ -20,7 +26,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.*" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.*" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.*" />
-    <PackageReference Include="MSTest.TestAdapter" Version="3.1.*" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.1.*" />
+    <PackageReference Include="xunit" Version="2.5.*" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="All" Version="2.5.*" />
   </ItemGroup>
 </Project>

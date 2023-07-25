@@ -11,17 +11,9 @@ namespace L1L2RedisCache;
 /// A distributed cache implementation using both memory and Redis.
 /// </summary>
 public sealed class L1L2RedisCache :
-    IAsyncDisposable,
     IDisposable,
     IDistributedCache
 {
-    private static readonly
-        Action<ILogger, TimeSpan, Exception?> _subscriberFailed =
-            LoggerMessage.Define<TimeSpan>(
-                LogLevel.Error,
-                new EventId(0),
-                "Failed to initialize subscriber; retrying in {SubscriberRetryDelay}");
-
     /// <summary>
     /// Initializes a new instance of L1L2RedisCache.
     /// </summary>
@@ -31,37 +23,38 @@ public sealed class L1L2RedisCache :
         Func<IDistributedCache> l2CacheAccessor,
         IMessagePublisher messagePublisher,
         IMessageSubscriber messageSubscriber,
+        IMessagingConfigurationVerifier messagingConfigurationVerifier,
         ILogger<L1L2RedisCache>? logger = null)
     {
-        if (l1l2RedisCacheOptionsAccessor == null)
-        {
+        L1Cache = l1Cache ??
+            throw new ArgumentNullException(
+                nameof(l1Cache));
+        L1L2RedisCacheOptions = l1l2RedisCacheOptionsAccessor?.Value ??
             throw new ArgumentNullException(
                 nameof(l1l2RedisCacheOptionsAccessor));
-        }
-        if (l2CacheAccessor == null)
-        {
+        L2Cache = l2CacheAccessor?.Invoke() ??
             throw new ArgumentNullException(
                 nameof(l2CacheAccessor));
-        }
-
-        L1Cache = l1Cache;
-        L1L2RedisCacheOptions = l1l2RedisCacheOptionsAccessor.Value;
-        L2Cache = l2CacheAccessor();
         Logger = logger;
-        MessagePublisher = messagePublisher;
-        MessageSubscriber = messageSubscriber;
+        MessagePublisher = messagePublisher ??
+            throw new ArgumentNullException(
+                nameof(messagePublisher));
+        MessageSubscriber = messageSubscriber ??
+            throw new ArgumentNullException(
+                nameof(messageSubscriber));
+        MessagingConfigurationVerifier = messagingConfigurationVerifier ??
+            throw new ArgumentNullException(
+                nameof(l1l2RedisCacheOptionsAccessor));
 
         Database = new Lazy<IDatabase>(() =>
             L1L2RedisCacheOptions
-                .ConnectionMultiplexerFactory?
-                .Invoke()
+                .ConnectionMultiplexerFactory!()
                 .GetAwaiter()
                 .GetResult()
                 .GetDatabase(
                     L1L2RedisCacheOptions
                         .ConfigurationOptions?
-                        .DefaultDatabase ?? -1) ??
-                    throw new InvalidOperationException());
+                        .DefaultDatabase ?? -1));
 
         SubscribeCancellationTokenSource = new CancellationTokenSource();
         _ = SubscribeAsync(
@@ -106,8 +99,12 @@ public sealed class L1L2RedisCache :
     /// </summary>
     public IMessageSubscriber MessageSubscriber { get; }
 
+    /// <summary>
+    /// The messaging configuration verifier.
+    /// </summary>
+    public IMessagingConfigurationVerifier MessagingConfigurationVerifier { get; }
+
     private bool IsDisposed { get; set; }
-    private bool IsDisposedAsync { get; set; }
     private CancellationTokenSource SubscribeCancellationTokenSource { get; set; }
 
     /// <summary>
@@ -116,26 +113,6 @@ public sealed class L1L2RedisCache :
     public void Dispose()
     {
         Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Releases all resources used by the current instance.
-    /// </summary>
-    public async ValueTask DisposeAsync()
-    {
-        if (IsDisposed || IsDisposedAsync)
-        {
-            return;
-        }
-
-        SubscribeCancellationTokenSource.Dispose();
-        await MessageSubscriber
-            .UnsubscribeAsync()
-            .ConfigureAwait(false);
-
-        Dispose(true);
-
         GC.SuppressFinalize(this);
     }
 
@@ -278,7 +255,9 @@ public sealed class L1L2RedisCache :
             L2Cache.Remove(key);
             L1Cache.Remove(
                 $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
-            MessagePublisher.Publish(key);
+            MessagePublisher.Publish(
+                Database.Value.Multiplexer,
+                key);
             L1Cache.Remove(
                 $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
         }
@@ -314,7 +293,10 @@ public sealed class L1L2RedisCache :
             L1Cache.Remove(
                 $"{L1L2RedisCacheOptions.KeyPrefix}{key}");
             await MessagePublisher
-                .PublishAsync(key, token)
+                .PublishAsync(
+                    Database.Value.Multiplexer,
+                    key,
+                    token)
                 .ConfigureAwait(false);
             L1Cache.Remove(
                 $"{L1L2RedisCacheOptions.LockKeyPrefix}{key}");
@@ -346,7 +328,9 @@ public sealed class L1L2RedisCache :
                 key, value, options);
             SetMemoryCache(
                 key, value, options);
-            MessagePublisher.Publish(key);
+            MessagePublisher.Publish(
+                Database.Value.Multiplexer,
+                key);
         }
         finally
         {
@@ -389,7 +373,9 @@ public sealed class L1L2RedisCache :
                 key, value, options);
             await MessagePublisher
                 .PublishAsync(
-                    key, token)
+                    Database.Value.Multiplexer,
+                    key,
+                    token)
                 .ConfigureAwait(false);
         }
         finally
@@ -400,18 +386,14 @@ public sealed class L1L2RedisCache :
 
     private void Dispose(bool isDisposing)
     {
-        if (!IsDisposed)
+        if (IsDisposed)
         {
             return;
         }
 
-        if (isDisposing && !IsDisposedAsync)
+        if (isDisposing)
         {
-            DisposeAsync()
-                .AsTask()
-                .ConfigureAwait(false)
-                .GetAwaiter()
-                .GetResult();
+            SubscribeCancellationTokenSource.Dispose();
         }
 
         IsDisposed = true;
@@ -559,22 +541,29 @@ public sealed class L1L2RedisCache :
         {
             try
             {
+                if (!await MessagingConfigurationVerifier
+                        .VerifyConfigurationAsync(
+                            Database.Value,
+                            cancellationToken)
+                        .ConfigureAwait(false))
+                {
+                    Logger?.MessagingConfigurationInvalid(
+                        L1L2RedisCacheOptions.MessagingType);
+                }
+
                 await MessageSubscriber
                     .SubscribeAsync(
+                        Database.Value.Multiplexer,
                         cancellationToken)
                     .ConfigureAwait(false);
                 break;
             }
             catch (RedisConnectionException redisConnectionException)
             {
-                if (Logger != null)
-                {
-                    _subscriberFailed(
-                        Logger,
-                        L1L2RedisCacheOptions
-                            .SubscriberRetryDelay,
-                        redisConnectionException);
-                }
+                Logger?.SubscriberFailed(
+                    L1L2RedisCacheOptions
+                        .SubscriberRetryDelay,
+                    redisConnectionException);
 
                 await Task
                     .Delay(

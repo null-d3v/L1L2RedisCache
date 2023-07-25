@@ -8,12 +8,18 @@
     <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <AssemblyAttribute Include="Xunit.CollectionBehaviorAttribute">
+      <MaxParallelThreads>-1</MaxParallelThreads>
+      <MaxParallelThreads_TypeName>System.Int32</MaxParallelThreads_TypeName>
+    </AssemblyAttribute>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\L1L2RedisCache.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.*" />
     <PackageReference Include="Moq" Version="4.18.*" />
-    <PackageReference Include="MSTest.TestAdapter" Version="3.1.*" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.1.*" />
+    <PackageReference Include="xunit" Version="2.5.*" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="All" Version="2.5.*" />
   </ItemGroup>
 </Project>
