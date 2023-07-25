@@ -9,6 +9,8 @@
     <NoWarn>CA1724;CA1812;SYSLIB1006;</NoWarn>
     <Nullable>enable</Nullable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/null-d3v/L1L2RedisCache.git</RepositoryUrl>
     <TargetFramework>netstandard2.1</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
