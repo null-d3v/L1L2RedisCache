@@ -2,11 +2,11 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Xunit;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace L1L2RedisCache.Tests.System;
 
-[Collection("System")]
+[TestClass]
 public class MessagingTests
 {
     public MessagingTests()
@@ -21,10 +21,10 @@ public class MessagingTests
     public IConfiguration Configuration { get; }
     public TimeSpan EventTimeout { get; }
 
-    [InlineData(100, MessagingType.Default)]
-    [InlineData(100, MessagingType.KeyeventNotifications)]
-    [InlineData(100, MessagingType.KeyspaceNotifications)]
-    [Theory]
+    [DataRow(100, MessagingType.Default)]
+    [DataRow(100, MessagingType.KeyeventNotifications)]
+    [DataRow(100, MessagingType.KeyspaceNotifications)]
+    [TestMethod]
     public async Task MessagingTypeTest(
         int iterations,
         MessagingType messagingType)
@@ -76,7 +76,7 @@ public class MessagingTests
         var secondaryL1L2Cache = secondaryServiceProvider
             .GetRequiredService<IDistributedCache>();
 
-        Assert.True(
+        Assert.IsTrue(
             subscribeAutoResetEvent
                 .WaitOne(EventTimeout));
 
@@ -90,10 +90,10 @@ public class MessagingTests
                 .SetStringAsync(
                     key, value)
                 .ConfigureAwait(false);
-            Assert.True(
+            Assert.IsTrue(
                 messageAutoResetEvent
                     .WaitOne(EventTimeout));
-            Assert.Equal(
+            Assert.AreEqual(
                 value,
                 await secondaryL1L2Cache
                     .GetStringAsync(key)
@@ -105,10 +105,10 @@ public class MessagingTests
                 .SetStringAsync(
                     key, value)
                 .ConfigureAwait(false);
-            Assert.True(
+            Assert.IsTrue(
                 messageAutoResetEvent
                     .WaitOne(EventTimeout));
-            Assert.Equal(
+            Assert.AreEqual(
                 value,
                 await secondaryL1L2Cache
                     .GetStringAsync(key)
@@ -118,10 +118,10 @@ public class MessagingTests
             await primaryL1L2Cache
                 .RemoveAsync(key)
                 .ConfigureAwait(false);
-            Assert.True(
+            Assert.IsTrue(
                 messageAutoResetEvent
                     .WaitOne(EventTimeout));
-            Assert.Null(
+            Assert.IsNull(
                 await secondaryL1L2Cache
                     .GetStringAsync(key)
                     .ConfigureAwait(false));
@@ -146,7 +146,7 @@ public class MessagingTests
 
         var configurationVerifier = serviceProvider
             .GetRequiredService<IMessagingConfigurationVerifier>();
-        Assert.True(
+        Assert.IsTrue(
             await configurationVerifier
                 .VerifyConfigurationAsync(
                     l1L2Cache.Database.Value)

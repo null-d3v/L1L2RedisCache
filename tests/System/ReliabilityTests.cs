@@ -1,12 +1,12 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StackExchange.Redis;
-using Xunit;
 
 namespace L1L2RedisCache.Tests.System;
 
-[Collection("System")]
+[TestClass]
 public class ReliabilityTests
 {
     public ReliabilityTests()
@@ -21,7 +21,7 @@ public class ReliabilityTests
     public IConfiguration Configuration { get; }
     public TimeSpan EventTimeout { get; }
 
-    [Fact]
+    [TestMethod]
     public void InitializeBadConnectionTest()
     {
         var services = new ServiceCollection();
@@ -45,10 +45,10 @@ public class ReliabilityTests
         var l1L2Cache = serviceProvider
             .GetRequiredService<IDistributedCache>();
 
-        Assert.False(
+        Assert.IsFalse(
             subscribeAutoResetEvent
                 .WaitOne(EventTimeout));
-        Assert.ThrowsAsync<RedisConnectionException>(
+        Assert.ThrowsExceptionAsync<RedisConnectionException>(
             () => l1L2Cache
                 .GetStringAsync(string.Empty));
     }
