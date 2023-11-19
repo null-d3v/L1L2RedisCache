@@ -1,13 +1,13 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Moq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NSubstitute;
 using StackExchange.Redis;
-using Xunit;
 
 namespace L1L2RedisCache.Tests.Unit;
 
-[Collection("Unit")]
+[TestClass]
 public class L1L2RedisCacheTests
 {
     public L1L2RedisCacheTests()
@@ -27,101 +27,108 @@ public class L1L2RedisCacheTests
                 })
             .Value;
 
-        var mockDatabase = new Mock<IDatabase>();
-        mockDatabase
-            .Setup(
-                d => d.HashGetAll(
-                    It.IsAny<RedisKey>(),
-                    It.IsAny<CommandFlags>()))
-            .Returns<RedisKey, CommandFlags>(
-                (k, cF) =>
+        var database = Substitute
+            .For<IDatabase>();
+        database
+            .HashGetAll(
+                Arg.Any<RedisKey>(),
+                Arg.Any<CommandFlags>())
+            .Returns(
+                args =>
                 {
-                    var key = k.ToString()[
+                    var key = ((RedisKey)args[0]).ToString()[
                         (L1L2RedisCacheOptions?.InstanceName?.Length ?? 0)..];
                     var value = L2Cache.Get(key);
-                    return new HashEntry[]
-                    {
+                    return
+                    [
                         new HashEntry("data", value),
-                    };
+                    ];
                 });
-        mockDatabase
-            .Setup(
-                d => d.HashGetAllAsync(
-                    It.IsAny<RedisKey>(),
-                    It.IsAny<CommandFlags>()))
-            .Returns<RedisKey, CommandFlags>(
-                (k, cF) =>
+        database
+            .HashGetAllAsync(
+                Arg.Any<RedisKey>(),
+                Arg.Any<CommandFlags>())
+            .Returns(
+                async args =>
                 {
-                    var key = k.ToString()[
+                    var key = ((RedisKey)args[0]).ToString()[
                         (L1L2RedisCacheOptions?.InstanceName?.Length ?? 0)..];
-                    var value = L2Cache.Get(key);
-                    return Task.FromResult(new HashEntry[]
-                    {
+                    var value = await L2Cache
+                        .GetAsync(key)
+                        .ConfigureAwait(false);
+                    return
+                    [
                         new HashEntry("data", value),
-                    });
+                    ];
                 });
-        mockDatabase
-            .Setup(
-                d => d.KeyExists(
-                    It.IsAny<RedisKey>(),
-                    It.IsAny<CommandFlags>()))
-            .Returns<RedisKey, CommandFlags>(
-                (k, cF) => L2Cache.Get(k.ToString()) != null);
-        mockDatabase
-            .Setup(
-                d => d.KeyExistsAsync(
-                    It.IsAny<RedisKey>(),
-                    It.IsAny<CommandFlags>()))
-            .Returns<RedisKey, CommandFlags>(
-                async (k, cF) =>
+        database
+            .KeyExists(
+                Arg.Any<RedisKey>(),
+                Arg.Any<CommandFlags>())
+            .Returns(
+                args =>
                 {
-                    var key = k.ToString()[
+                    return L2Cache.Get(
+                        ((RedisKey)args[0]).ToString()) != null;
+                });
+        database
+            .KeyExistsAsync(
+                Arg.Any<RedisKey>(),
+                Arg.Any<CommandFlags>())
+            .Returns(
+                async args =>
+                {
+                    var key = ((RedisKey)args[0]).ToString()[
                         (L1L2RedisCacheOptions.InstanceName?.Length ?? 0)..];
                     return await L2Cache
                         .GetAsync(key)
                         .ConfigureAwait(false) != null;
                 });
 
-        var mockConnectionMultiplexer = new Mock<IConnectionMultiplexer>();
-        mockConnectionMultiplexer
-            .Setup(cM => cM.GetDatabase(
-                It.IsAny<int>(), It.IsAny<object>()))
-            .Returns(mockDatabase.Object);
+        var connectionMultiplexer = Substitute
+            .For<IConnectionMultiplexer>();
+        connectionMultiplexer
+            .GetDatabase(
+                Arg.Any<int>(),
+                Arg.Any<object>())
+            .Returns(database);
 
         L1L2RedisCacheOptions.ConnectionMultiplexerFactory =
-            () => Task.FromResult(mockConnectionMultiplexer.Object);
+            () => Task.FromResult(connectionMultiplexer);
 
-        var mockMessagePublisher = new Mock<IMessagePublisher>();
-        mockMessagePublisher
-            .Setup(mP => mP.Publish(
-                It.IsAny<IConnectionMultiplexer>(),
-                It.IsAny<string>()));
-        mockMessagePublisher
-            .Setup(mP => mP.PublishAsync(
-                It.IsAny<IConnectionMultiplexer>(),
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()));
+        var messagePublisher = Substitute
+            .For<IMessagePublisher>();
+        messagePublisher
+            .Publish(
+                Arg.Any<IConnectionMultiplexer>(),
+                Arg.Any<string>());
+        messagePublisher
+            .PublishAsync(
+                Arg.Any<IConnectionMultiplexer>(),
+                Arg.Any<string>(),
+                Arg.Any<CancellationToken>());
 
-        var mockMessageSubscriber = new Mock<IMessageSubscriber>();
-        mockMessageSubscriber
-            .Setup(mS => mS.SubscribeAsync(
-                It.IsAny<IConnectionMultiplexer>(),
-                It.IsAny<CancellationToken>()));
+        var messageSubscriber = Substitute
+            .For<IMessageSubscriber>();
+        messageSubscriber
+            .SubscribeAsync(
+                Arg.Any<IConnectionMultiplexer>(),
+                Arg.Any<CancellationToken>());
 
-        var mockMessagingConfigurationVerifier =
-            new Mock<IMessagingConfigurationVerifier>();
-        mockMessagingConfigurationVerifier
-            .Setup(mS => mS.VerifyConfigurationAsync(
-                It.IsAny<IDatabase>(),
-                It.IsAny<CancellationToken>()));
+        var messagingConfigurationVerifier = Substitute
+            .For<IMessagingConfigurationVerifier>();
+        messagingConfigurationVerifier
+            .VerifyConfigurationAsync(
+                Arg.Any<IDatabase>(),
+                Arg.Any<CancellationToken>());
 
         L1L2Cache = new L1L2RedisCache(
             L1Cache,
             L1L2RedisCacheOptions,
             new Func<IDistributedCache>(() => L2Cache),
-            mockMessagePublisher.Object,
-            mockMessageSubscriber.Object,
-            mockMessagingConfigurationVerifier.Object);
+            messagePublisher,
+            messageSubscriber,
+            messagingConfigurationVerifier);
     }
 
     public IMemoryCache L1Cache { get; }
@@ -129,7 +136,7 @@ public class L1L2RedisCacheTests
     public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; }
     public IDistributedCache L2Cache { get; }
 
-    [Fact]
+    [TestMethod]
     public async Task GetPropagationTest()
     {
         var key = "key";
@@ -141,19 +148,19 @@ public class L1L2RedisCacheTests
             .SetAsync(key, value)
             .ConfigureAwait(false);
 
-        Assert.Null(
+        Assert.IsNull(
             L1Cache.Get(prefixedKey));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             await L1L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1Cache.Get(prefixedKey));
     }
 
-    [Fact]
+    [TestMethod]
     public void SetTest()
     {
         var key = "key";
@@ -163,18 +170,18 @@ public class L1L2RedisCacheTests
 
         L1L2Cache.Set(key, value);
 
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1L2Cache.Get(key));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1Cache.Get(prefixedKey));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L2Cache.Get(key));
     }
 
-    [Fact]
+    [TestMethod]
     public void SetRemoveTest()
     {
         var key = "key";
@@ -184,27 +191,27 @@ public class L1L2RedisCacheTests
 
         L1L2Cache.Set(key, value);
 
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1L2Cache.Get(key));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1Cache.Get(prefixedKey));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L2Cache.Get(key));
 
         L1L2Cache.Remove(key);
 
-        Assert.Null(
+        Assert.IsNull(
             L1L2Cache.Get(key));
-        Assert.Null(
+        Assert.IsNull(
             L1Cache.Get(prefixedKey));
-        Assert.Null(
+        Assert.IsNull(
             L2Cache.Get(key));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task SetAsyncTest()
     {
         var key = "key";
@@ -216,22 +223,22 @@ public class L1L2RedisCacheTests
             .SetAsync(key, value)
             .ConfigureAwait(false);
 
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             await L1L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1Cache.Get(prefixedKey));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             await L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
     }
 
-    [Fact]
+    [TestMethod]
     public async Task SetAsyncRemoveAsyncTest()
     {
         var key = "key";
@@ -243,15 +250,15 @@ public class L1L2RedisCacheTests
             .SetAsync(key, value)
             .ConfigureAwait(false);
 
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             await L1L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             L1Cache.Get(prefixedKey));
-        Assert.Equal(
+        Assert.AreEqual(
             value,
             await L2Cache
                 .GetAsync(key)
@@ -261,13 +268,13 @@ public class L1L2RedisCacheTests
             .RemoveAsync(key)
             .ConfigureAwait(false);
 
-        Assert.Null(
+        Assert.IsNull(
             await L1L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));
-        Assert.Null(
+        Assert.IsNull(
             L1Cache.Get(prefixedKey));
-        Assert.Null(
+        Assert.IsNull(
             await L2Cache
                 .GetAsync(key)
                 .ConfigureAwait(false));

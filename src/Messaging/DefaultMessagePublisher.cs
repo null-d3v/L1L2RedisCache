@@ -4,19 +4,15 @@ using System.Text.Json;
 
 namespace L1L2RedisCache;
 
-internal sealed class DefaultMessagePublisher :
+internal sealed class DefaultMessagePublisher(
+    IOptions<JsonSerializerOptions> jsonSerializerOptionsAccessor,
+    IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor) :
     IMessagePublisher
 {
-    public DefaultMessagePublisher(
-        IOptions<JsonSerializerOptions> jsonSerializerOptionsAccessor,
-        IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor)
-    {
-        JsonSerializerOptions = jsonSerializerOptionsAccessor.Value;
-        L1L2RedisCacheOptions = l1L2RedisCacheOptionsOptionsAccessor.Value;
-    }
-
-    public JsonSerializerOptions JsonSerializerOptions { get; set; }
-    public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; }
+    public JsonSerializerOptions JsonSerializerOptions { get; set; } =
+        jsonSerializerOptionsAccessor.Value;
+    public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; } =
+        l1L2RedisCacheOptionsOptionsAccessor.Value;
 
     public void Publish(
         IConnectionMultiplexer connectionMultiplexer,

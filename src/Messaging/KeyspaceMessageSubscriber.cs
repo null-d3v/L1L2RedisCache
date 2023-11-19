@@ -4,19 +4,15 @@ using StackExchange.Redis;
 
 namespace L1L2RedisCache;
 
-internal class KeyspaceMessageSubscriber :
+internal class KeyspaceMessageSubscriber(
+    IMemoryCache l1Cache,
+    IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor) :
     IMessageSubscriber
 {
-    public KeyspaceMessageSubscriber(
-        IMemoryCache l1Cache,
-        IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor)
-    {
-        L1Cache = l1Cache;
-        L1L2RedisCacheOptions = l1L2RedisCacheOptionsOptionsAccessor.Value;
-    }
-
-    public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; }
-    public IMemoryCache L1Cache { get; set; }
+    public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; } =
+        l1L2RedisCacheOptionsOptionsAccessor.Value;
+    public IMemoryCache L1Cache { get; set; } =
+        l1Cache;
     public EventHandler<OnMessageEventArgs>? OnMessage { get; set; }
     public EventHandler? OnSubscribe { get; set; }
 

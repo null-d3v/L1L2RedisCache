@@ -5,22 +5,18 @@ using System.Text.Json;
 
 namespace L1L2RedisCache;
 
-internal class DefaultMessageSubscriber :
+internal class DefaultMessageSubscriber(
+    IOptions<JsonSerializerOptions> jsonSerializerOptionsAcccessor,
+    IMemoryCache l1Cache,
+    IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor) :
     IMessageSubscriber
 {
-    public DefaultMessageSubscriber(
-        IOptions<JsonSerializerOptions> jsonSerializerOptionsAcccessor,
-        IMemoryCache l1Cache,
-        IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor)
-    {
-        JsonSerializerOptions = jsonSerializerOptionsAcccessor.Value;
-        L1Cache = l1Cache;
-        L1L2RedisCacheOptions = l1L2RedisCacheOptionsOptionsAccessor.Value;
-    }
-
-    public JsonSerializerOptions JsonSerializerOptions { get; set; }
-    public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; }
-    public IMemoryCache L1Cache { get; set; }
+    public JsonSerializerOptions JsonSerializerOptions { get; set; } =
+        jsonSerializerOptionsAcccessor.Value;
+    public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; set; } =
+        l1L2RedisCacheOptionsOptionsAccessor.Value;
+    public IMemoryCache L1Cache { get; set; } =
+        l1Cache;
     public EventHandler<OnMessageEventArgs>? OnMessage { get; set; }
     public EventHandler? OnSubscribe { get; set; }
 

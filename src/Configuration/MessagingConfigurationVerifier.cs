@@ -3,7 +3,8 @@ using StackExchange.Redis;
 
 namespace L1L2RedisCache;
 
-internal sealed class MessagingConfigurationVerifier :
+internal sealed class MessagingConfigurationVerifier(
+    IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor) :
     IMessagingConfigurationVerifier
 {
     private const string config = "notify-keyspace-events";
@@ -18,15 +19,10 @@ internal sealed class MessagingConfigurationVerifier :
         };
     }
 
-    public MessagingConfigurationVerifier(
-        IOptions<L1L2RedisCacheOptions> l1L2RedisCacheOptionsOptionsAccessor)
-    {
-        L1L2RedisCacheOptions = l1L2RedisCacheOptionsOptionsAccessor.Value;
-    }
-
     internal static IDictionary<MessagingType, string> NotifyKeyspaceEventsConfig { get; }
 
-    public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; }
+    public L1L2RedisCacheOptions L1L2RedisCacheOptions { get; } =
+        l1L2RedisCacheOptionsOptionsAccessor.Value;
 
     public async Task<bool> VerifyConfigurationAsync(
         IDatabase database,
