@@ -8,6 +8,8 @@ on:
 jobs:
     publish:
         runs-on: ubuntu-latest
+        env:
+            L1L2RedisCache__Configuration: localhost
         services:
             redis:
                 image: redis
