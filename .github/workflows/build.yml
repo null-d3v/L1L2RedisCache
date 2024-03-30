@@ -11,9 +11,9 @@ jobs:
                 ports:
                   - 6379:6379
         steps:
-          - uses: actions/checkout@v3
+          - uses: actions/checkout@v4
           - name: Setup
-            uses: actions/setup-dotnet@v3
+            uses: actions/setup-dotnet@v4
             with:
                 dotnet-version: 8
           - name: Build

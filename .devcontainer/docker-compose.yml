@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+    devcontainer:
+        image: mcr.microsoft.com/devcontainers/dotnet:8.0-bookworm
+        volumes:
+          - ..:/workspace:cached
+        command: sleep infinity
+    redis:
+        image: redis

@@ -1,0 +1,24 @@
+{
+    "dockerComposeFile": "docker-compose.yml",
+    "customizations":
+    {
+        "vscode":
+        {
+            "extensions":
+            [
+                "ms-dotnettools.csdevkit",
+                "ue.alphabetical-sorter"
+            ]
+        }
+    },
+    "forwardPorts":
+    [
+        "redis:6379"
+    ],
+    "name": "L1L2RedisCache",
+    "postCreateCommand": "dotnet dev-certs https",
+    "remoteUser": "root",
+    "service": "devcontainer",
+    "shutdownAction": "stopCompose",
+    "workspaceFolder": "/workspace"
+}
