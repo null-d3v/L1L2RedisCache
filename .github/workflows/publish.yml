@@ -13,12 +13,12 @@ jobs:
           - name: Version
             run: echo "VERSION=${GITHUB_REF:10}+${GITHUB_SHA::8}" >> $GITHUB_ENV
           - name: Test
-          - uses: devcontainers/ci@v0.3
+            uses: devcontainers/ci@v0.3
             with:
               push: never
               runCmd: dotnet test
           - name: Publish
-          - uses: devcontainers/ci@v0.3
+            uses: devcontainers/ci@v0.3
             with:
               push: never
               runCmd: dotnet build -c Release && dotnet nuget push "**/*.nupkg" -k ${{ secrets.NUGET_KEY }} -n -s https://api.nuget.org/v3/index.json --skip-duplicate
