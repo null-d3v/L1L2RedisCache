@@ -5,20 +5,10 @@ on: push
 jobs:
     build:
         runs-on: ubuntu-latest
-        env:
-            L1L2RedisCache__Configuration: localhost
-        services:
-            redis:
-                image: redis
-                ports:
-                  - 6379:6379
         steps:
           - uses: actions/checkout@v4
-          - name: Setup
-            uses: actions/setup-dotnet@v4
-            with:
-                dotnet-version: 8
-          - name: Build
-            run: dotnet build -c Release
           - name: Test
-            run: dotnet test
+          - uses: devcontainers/ci@v0.3
+            with:
+              push: never
+              runCmd: dotnet test
