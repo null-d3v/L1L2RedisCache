@@ -4,6 +4,8 @@
 
 `L1L2RedisCache` is heavily inspired by development insights provided over the past several years by [StackOverflow](https://stackoverflow.com/). It attempts to simplify those concepts into a highly accessible `IDistributedCache` implementation that is more performant.
 
+I expect to gracefully decomission this project when [`StackExchange.Redis`](https://github.com/StackExchange/StackExchange.Redis) has [client-side caching](https://redis.io/docs/latest/develop/use/client-side-caching/) support.
+
 ## Configuration
 
 It is intended that L1L12RedisCache be used as an `IDistributedCache` implementation.
