@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AnalysisLevel>latest-all</AnalysisLevel>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <None CopyToOutputDirectory="PreserveNewest" Include="appsettings.json" />
@@ -16,13 +16,13 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.14.*" />
     <PackageReference Include="coverlet.collector" Version="6.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.*" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.*" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.*" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.*" />
-    <PackageReference Include="MSTest.TestAdapter" Version="3.5.*" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.5.*" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.6.*" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.6.*" />
   </ItemGroup>
 </Project>

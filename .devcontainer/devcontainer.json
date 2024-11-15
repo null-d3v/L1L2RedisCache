@@ -8,7 +8,11 @@
             [
                 "ms-dotnettools.csdevkit",
                 "ue.alphabetical-sorter"
-            ]
+            ],
+            "settings":
+            {
+                "remote.autoForwardPorts": false
+            }
         }
     },
     "forwardPorts":
