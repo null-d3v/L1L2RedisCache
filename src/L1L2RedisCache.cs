@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
-using System.Diagnostics.CodeAnalysis;
 
 namespace L1L2RedisCache;
 
@@ -35,7 +35,8 @@ public sealed class L1L2RedisCache :
         L2Cache = l2CacheAccessor?.Invoke() ??
             throw new ArgumentNullException(
                 nameof(l2CacheAccessor));
-        Logger = logger;
+        Logger = logger ??
+            NullLogger<L1L2RedisCache>.Instance;
         MessagePublisher = messagePublisher ??
             throw new ArgumentNullException(
                 nameof(messagePublisher));
@@ -87,7 +88,7 @@ public sealed class L1L2RedisCache :
     /// <summary>
     /// Optional. The logger.
     /// </summary>
-    public ILogger<L1L2RedisCache>? Logger { get; }
+    public ILogger<L1L2RedisCache> Logger { get; }
 
     /// <summary>
     /// The pub/sub publisher.
@@ -121,7 +122,6 @@ public sealed class L1L2RedisCache :
     /// </summary>
     /// <param name="key">A string identifying the requested value.</param>
     /// <returns>The located value or null.</returns>
-    [SuppressMessage("Reliability", "CA2000")]
     public byte[]? Get(string key)
     {
         var value = L1Cache.Get(
@@ -245,7 +245,6 @@ public sealed class L1L2RedisCache :
     /// Removes the value with the given key.
     /// </summary>
     /// <param name="key">A string identifying the requested value.</param>
-    [SuppressMessage("Reliability", "CA2000")]
     public void Remove(string key)
     {
         var semaphore = GetOrCreateLock(key, null);
@@ -313,7 +312,6 @@ public sealed class L1L2RedisCache :
     /// <param name="key">A string identifying the requested value.</param>
     /// <param name="value">The value to set in the cache.</param>
     /// <param name="options">The cache options for the value.</param>
-    [SuppressMessage("Reliability", "CA2000")]
     public void Set(
         string key,
         byte[] value,
@@ -456,7 +454,6 @@ public sealed class L1L2RedisCache :
         }
     }
 
-    [SuppressMessage("Reliability", "CA2000")]
     private async Task<SemaphoreSlim> GetOrCreateLockAsync(
         string key,
         DistributedCacheEntryOptions? distributedCacheEntryOptions,
@@ -547,7 +544,7 @@ public sealed class L1L2RedisCache :
                             cancellationToken)
                         .ConfigureAwait(false))
                 {
-                    Logger?.MessagingConfigurationInvalid(
+                    Logger.MessagingConfigurationInvalid(
                         L1L2RedisCacheOptions.MessagingType);
                 }
 
@@ -560,7 +557,7 @@ public sealed class L1L2RedisCache :
             }
             catch (RedisConnectionException redisConnectionException)
             {
-                Logger?.SubscriberFailed(
+                Logger.SubscriberFailed(
                     L1L2RedisCacheOptions
                         .SubscriberRetryDelay,
                     redisConnectionException);

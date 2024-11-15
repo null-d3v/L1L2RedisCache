@@ -1,6 +1,6 @@
 services:
     devcontainer:
-        image: mcr.microsoft.com/devcontainers/dotnet:8.0-bookworm
+        image: mcr.microsoft.com/devcontainers/dotnet:9.0-bookworm
         volumes:
           - ..:/workspace:cached
         command: sleep infinity
