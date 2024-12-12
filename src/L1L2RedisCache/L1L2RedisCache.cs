@@ -39,11 +39,7 @@ public class L1L2RedisCache(
     private SemaphoreSlim KeySemaphore { get; } =
         new SemaphoreSlim(1, 1);
 
-    /// <summary>
-    /// Gets a value with the given key.
-    /// </summary>
-    /// <param name="key">A string identifying the requested value.</param>
-    /// <returns>The located value or null.</returns>
+    /// <inheritdoc />
     [SuppressMessage("Reliability", "CA2000")]
     public new byte[]? Get(string key)
     {
@@ -84,12 +80,7 @@ public class L1L2RedisCache(
         return value;
     }
 
-    /// <summary>
-    /// Gets a value with the given key.
-    /// </summary>
-    /// <param name="key">A string identifying the requested value.</param>
-    /// <param name="token">Optional. The System.Threading.CancellationToken used to propagate notifications that the operation should be canceled.</param>
-    /// <returns>The System.Threading.Tasks.Task that represents the asynchronous operation, containing the located value or null.</returns>
+    /// <inheritdoc />
     public new async Task<byte[]?> GetAsync(
         string key,
         CancellationToken token = default)
@@ -138,10 +129,7 @@ public class L1L2RedisCache(
         return value;
     }
 
-    /// <summary>
-    /// Removes the value with the given key.
-    /// </summary>
-    /// <param name="key">A string identifying the requested value.</param>
+    /// <inheritdoc />
     [SuppressMessage("Reliability", "CA2000")]
     public new void Remove(string key)
     {
@@ -160,12 +148,7 @@ public class L1L2RedisCache(
         }
     }
 
-    /// <summary>
-    /// Removes the value with the given key.
-    /// </summary>
-    /// <param name="key">A string identifying the requested value.</param>
-    /// <param name="token">Optional. The System.Threading.CancellationToken used to propagate notifications that the operation should be canceled.</param>
-    /// <returns>The System.Threading.Tasks.Task that represents the asynchronous operation.</returns>
+    /// <inheritdoc />
     public new async Task RemoveAsync(
         string key,
         CancellationToken token = default)
@@ -193,12 +176,7 @@ public class L1L2RedisCache(
         }
     }
 
-    /// <summary>
-    /// Sets a value with the given key.
-    /// </summary>
-    /// <param name="key">A string identifying the requested value.</param>
-    /// <param name="value">The value to set in the cache.</param>
-    /// <param name="options">The cache options for the value.</param>
+    /// <inheritdoc />
     [SuppressMessage("Reliability", "CA2000")]
     public new void Set(
         string key,
@@ -221,14 +199,7 @@ public class L1L2RedisCache(
         }
     }
 
-    /// <summary>
-    /// Sets a value with the given key.
-    /// </summary>
-    /// <param name="key">A string identifying the requested value.</param>
-    /// <param name="value">The value to set in the cache.</param>
-    /// <param name="options">The cache options for the value.</param>
-    /// <param name="token">Optional. The System.Threading.CancellationToken used to propagate notifications that the operation should be canceled.</param>
-    /// <returns>The System.Threading.Tasks.Task that represents the asynchronous operation.</returns>
+    /// <inheritdoc />
     public new async Task SetAsync(
         string key,
         byte[] value,
