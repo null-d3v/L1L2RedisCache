@@ -222,6 +222,7 @@ public class MessagingRedisCache :
             .ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public async ValueTask SetAsync(
         string key,
         ReadOnlySequence<byte> value,
@@ -243,6 +244,7 @@ public class MessagingRedisCache :
             .ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public bool TryGet(
         string key,
         IBufferWriter<byte> destination)
@@ -253,6 +255,7 @@ public class MessagingRedisCache :
                 destination);
     }
 
+    /// <inheritdoc />
     public async ValueTask<bool> TryGetAsync(
         string key,
         IBufferWriter<byte> destination,
