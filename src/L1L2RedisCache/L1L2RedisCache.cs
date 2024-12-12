@@ -12,6 +12,7 @@ namespace L1L2RedisCache;
 /// A distributed cache implementation using both memory and Redis.
 /// </summary>
 public class L1L2RedisCache(
+    IBufferDistributedCache bufferDistributedCache,
     IMemoryCache l1Cache,
     IMessagePublisher messagePublisher,
     IMessageSubscriber messageSubscriber,
@@ -19,6 +20,7 @@ public class L1L2RedisCache(
     IOptions<MessagingRedisCacheOptions> messagingRedisCacheOptionsAccessor,
     ILogger<L1L2RedisCache>? logger = null) :
     MessagingRedisCache.MessagingRedisCache(
+        bufferDistributedCache,
         messagePublisher,
         messageSubscriber,
         messagingConfigurationVerifier,

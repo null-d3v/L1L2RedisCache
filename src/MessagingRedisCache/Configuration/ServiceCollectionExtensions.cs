@@ -1,5 +1,6 @@
 ﻿using MessagingRedisCache;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
@@ -46,6 +47,15 @@ public static class ServiceCollectionExtensions
                     }
                 }
             });
+        services.AddSingleton<IBufferDistributedCache, RedisCache>(
+            serviceProvider =>
+                new RedisCache(
+                    serviceProvider
+                        .GetRequiredService<IOptions<MessagingRedisCacheOptions>>()));
+        services.AddSingleton(
+            serviceProvider => new Func<IDistributedCache>(
+                () => new RedisCache(
+                    serviceProvider.GetRequiredService<IOptions<MessagingRedisCacheOptions>>())));
         services.TryAddSingleton<IDistributedCache, MessagingRedisCache.MessagingRedisCache>();
         services.TryAddSingleton<IMessagingConfigurationVerifier, MessagingConfigurationVerifier>();
 

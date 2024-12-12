@@ -1,9 +1,7 @@
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 var services = new ServiceCollection();
-services.AddLogging(builder => builder.AddConsole().AddFilter(null, LogLevel.Trace));
 services.AddHybridCache();
 services.AddMessagingRedisCache(options =>
 {
@@ -34,5 +32,3 @@ var testValue = await hybridCache
         cancellationToken =>
             ValueTask.FromResult<string?>(null))
     .ConfigureAwait(false);
-
-var test = "";

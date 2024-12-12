@@ -1,10 +1,10 @@
-﻿using System.Buffers;
-using Microsoft.Extensions.Caching.Distributed;
+﻿using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
+using System.Buffers;
 
 namespace MessagingRedisCache;
 
@@ -12,20 +12,23 @@ namespace MessagingRedisCache;
 /// A Redis distributed cache implementation that uses pub/sub.
 /// </summary>
 public class MessagingRedisCache :
-    RedisCache,
-    IBufferDistributedCache
+    IBufferDistributedCache,
+    IDisposable
 {
     /// <summary>
     /// Initializes a new instance of MessagingRedisCache.
     /// </summary>
     public MessagingRedisCache(
+        IBufferDistributedCache bufferDistributedCache,
         IMessagePublisher messagePublisher,
         IMessageSubscriber messageSubscriber,
         IMessagingConfigurationVerifier messagingConfigurationVerifier,
         IOptions<MessagingRedisCacheOptions> messagingRedisCacheOptionsAccessor,
-        ILogger<MessagingRedisCache>? logger = null) :
-        base(messagingRedisCacheOptionsAccessor)
+        ILogger<MessagingRedisCache>? logger = null)
     {
+        BufferDistributedCache = bufferDistributedCache ??
+            throw new ArgumentNullException(
+                nameof(bufferDistributedCache));
         Logger = logger ??
             NullLogger<MessagingRedisCache>.Instance;
         MessagePublisher = messagePublisher ??
@@ -55,6 +58,11 @@ public class MessagingRedisCache :
         _ = SubscribeAsync(
             SubscribeCancellationTokenSource.Token);
     }
+
+    /// <summary>
+    /// The backing <c>IBufferDistributedCache</c>, implemented by <see cref="RedisCache"/>.
+    /// </summary>
+    public IBufferDistributedCache BufferDistributedCache { get; }
 
     /// <summary>
     /// The <c>StackExchange.Redis.IDatabase</c> for the <see cref="RedisCache"/>.
@@ -90,29 +98,69 @@ public class MessagingRedisCache :
     private CancellationTokenSource SubscribeCancellationTokenSource { get; set; }
 
     /// <inheritdoc />
-    public new void Dispose()
+    public void Dispose()
     {
-        base.Dispose();
         Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     /// <inheritdoc />
-    public new void Remove(string key)
+    public byte[]? Get(string key)
     {
-        base.Remove(key);
+        return BufferDistributedCache
+            .Get(key);
+    }
+
+    /// <inheritdoc />
+    public async Task<byte[]?> GetAsync(
+        string key,
+        CancellationToken token = default)
+    {
+        return await BufferDistributedCache
+            .GetAsync(
+                key,
+                token)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public void Refresh(string key)
+    {
+        BufferDistributedCache
+            .Refresh(key);
+    }
+
+    /// <inheritdoc />
+    public async Task RefreshAsync(
+        string key,
+        CancellationToken token = default)
+    {
+        await BufferDistributedCache
+            .RefreshAsync(
+                key,
+                token)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public void Remove(string key)
+    {
+        BufferDistributedCache
+            .Remove(key);
         MessagePublisher.Publish(
             Database.Value.Multiplexer,
             key);
     }
 
     /// <inheritdoc />
-    public new async Task RemoveAsync(
+    public async Task RemoveAsync(
         string key,
         CancellationToken token = default)
     {
-        await base.RemoveAsync(
-            key,
-            token)
+        await BufferDistributedCache
+            .RemoveAsync(
+                key,
+                token)
             .ConfigureAwait(false);
         await MessagePublisher
             .PublishAsync(
@@ -123,12 +171,12 @@ public class MessagingRedisCache :
     }
 
     /// <inheritdoc />
-    public new void Set(
+    public void Set(
         string key,
         byte[] value,
         DistributedCacheEntryOptions options)
     {
-        base.Set(
+        BufferDistributedCache.Set(
             key,
             value,
             options);
@@ -143,24 +191,28 @@ public class MessagingRedisCache :
         ReadOnlySequence<byte> value,
         DistributedCacheEntryOptions options)
     {
-        ((IBufferDistributedCache)this).Set(key, value, options);
+        BufferDistributedCache.Set(
+            key,
+            value,
+            options);
         MessagePublisher.Publish(
             Database.Value.Multiplexer,
             key);
     }
 
     /// <inheritdoc />
-    public new async Task SetAsync(
+    public async Task SetAsync(
         string key,
         byte[] value,
         DistributedCacheEntryOptions options,
         CancellationToken token = default)
     {
-        await base.SetAsync(
-            key,
-            value,
-            options,
-            token)
+        await BufferDistributedCache
+            .SetAsync(
+                key,
+                value,
+                options,
+                token)
             .ConfigureAwait(false);
         await MessagePublisher
             .PublishAsync(
@@ -170,7 +222,51 @@ public class MessagingRedisCache :
             .ConfigureAwait(false);
     }
 
-    private void Dispose(bool isDisposing)
+    public async ValueTask SetAsync(
+        string key,
+        ReadOnlySequence<byte> value,
+        DistributedCacheEntryOptions options,
+        CancellationToken token = default)
+    {
+        await BufferDistributedCache
+            .SetAsync(
+                key,
+                value,
+                options,
+                token)
+            .ConfigureAwait(false);
+        await MessagePublisher
+            .PublishAsync(
+                Database.Value.Multiplexer,
+                key,
+                token)
+            .ConfigureAwait(false);
+    }
+
+    public bool TryGet(
+        string key,
+        IBufferWriter<byte> destination)
+    {
+        return BufferDistributedCache
+            .TryGet(
+                key,
+                destination);
+    }
+
+    public async ValueTask<bool> TryGetAsync(
+        string key,
+        IBufferWriter<byte> destination,
+        CancellationToken token = default)
+    {
+        return await BufferDistributedCache
+            .TryGetAsync(
+                key,
+                destination,
+                token)
+            .ConfigureAwait(false);
+    }
+
+    protected virtual void Dispose(bool isDisposing)
     {
         if (IsDisposed)
         {

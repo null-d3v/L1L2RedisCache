@@ -19,7 +19,6 @@ public class MessagingRedisCacheTests
 
         var database = Substitute
             .For<IDatabase>();
-
         ConnectionMultiplexer = Substitute
             .For<IConnectionMultiplexer>();
         ConnectionMultiplexer
@@ -57,7 +56,10 @@ public class MessagingRedisCacheTests
                 Arg.Any<IDatabase>(),
                 Arg.Any<CancellationToken>());
 
+        var bufferDistributedCache = Substitute
+            .For<IBufferDistributedCache>();
         MessagingRedisCache = new MessagingRedisCache(
+            bufferDistributedCache,
             MessagePublisher,
             MessageSubscriber,
             messagingConfigurationVerifier,
