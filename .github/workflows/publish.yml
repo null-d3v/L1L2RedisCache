@@ -25,7 +25,7 @@ jobs:
             uses: actions/setup-dotnet@v4
             with:
                 dotnet-version: 9
-          - name: Build
-            run: dotnet build -c Release
+          - name: Pack
+            run: dotnet pack -c Release
           - name: Publish
             run: dotnet nuget push "**/*.nupkg" -k ${{ secrets.NUGET_KEY }} -n -s https://api.nuget.org/v3/index.json --skip-duplicate
