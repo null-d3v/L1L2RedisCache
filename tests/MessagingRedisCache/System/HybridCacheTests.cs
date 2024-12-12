@@ -37,8 +37,8 @@ public class HybridCacheTests :
     [TestMethod]
     public async Task GetOrCreateAsyncTest()
     {
-        // await SetAndVerifyConfigurationAsync()
-        //     .ConfigureAwait(false);
+        await SetAndVerifyConfigurationAsync()
+            .ConfigureAwait(false);
 
         var secondaryMessageSubscriber = SecondaryServiceProvider
             .GetRequiredService<IMessageSubscriber>();
