@@ -1,10 +1,10 @@
 # L1L2RedisCache
 
-`L1L2RedisCache` is an implementation of [`IDistributedCache`](https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Caching.Abstractions/src/IDistributedCache.cs) with emphasis on performance. It leverages [`IMemoryCache`](https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Caching.Abstractions/src/IMemoryCache.cs) as a level 1 cache and [`RedisCache`](https://github.com/dotnet/aspnetcore/blob/main/src/Caching/StackExchangeRedis/src/RedisCache.cs) as a level 2 cache, with level 1 evictions being managed via [Redis pub/sub](https://redis.io/topics/pubsub) by way of [`MemoryCache`](lol.com).
+`L1L2RedisCache` is an implementation of [`IDistributedCache`](https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Caching.Abstractions/src/IDistributedCache.cs) with emphasis on performance. It leverages [`IMemoryCache`](https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Extensions.Caching.Abstractions/src/IMemoryCache.cs) as a level 1 cache and [`MessagingRedisCache`](../MessagingRedisCache/README.md) as a level 2 cache, with level 1 evictions being managed via [Redis pub/sub](https://redis.io/topics/pubsub).
 
 `L1L2RedisCache` is heavily inspired by development insights provided over the past several years by [StackOverflow](https://stackoverflow.com/). It attempts to simplify those concepts into a highly accessible `IDistributedCache` implementation that is more performant.
 
-I expect to gracefully decomission this project when [`StackExchange.Redis`](https://github.com/StackExchange/StackExchange.Redis) has [client-side caching](https://redis.io/docs/latest/develop/use/client-side-caching/) support.
+Using a [`HybridCache`](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/hybrid) combined with [`MessagingRedisCache`](../MessagingRedisCache/README.md) is a viable alternative to this project. It is possible that with the full release of `HybridCache` this project will no longer be necessary.
 
 ## Configuration
 
