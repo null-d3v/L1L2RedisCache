@@ -37,16 +37,18 @@ public class PerformanceTests
 
         var l2GetVsL1L2GetRatio =
             l2GetReport.ResultStatistics?.Median /
-                l1L2GetReport.ResultStatistics?.Median;
-        Assert.IsTrue(
-            l2GetVsL1L2GetRatio > 100,
+                l1L2GetReport.ResultStatistics?.Median ?? 0;
+        Assert.IsGreaterThan(
+            100,
+            l2GetVsL1L2GetRatio,
             $"L1L2RedisCache Get must perform significantly better (> 100) than RedisCache Get: {l2GetVsL1L2GetRatio}");
 
         var l1L2GetPropagationVsl2GetRatio =
             l1L2GetPropagationReport.ResultStatistics?.Median /
-                l2GetReport.ResultStatistics?.Median;
-        Assert.IsTrue(
-            l1L2GetPropagationVsl2GetRatio < 3,
+                l2GetReport.ResultStatistics?.Median ?? 0;
+        Assert.IsLessThan(
+            3,
+            l1L2GetPropagationVsl2GetRatio,
             $"L1L2RedisCache GetPropagation cannot perform significantly worse (< 3) than RedisCache Get: {l1L2GetPropagationVsl2GetRatio}");
     }
 
@@ -69,9 +71,10 @@ public class PerformanceTests
 
         var l1L2SetVsl2SetRatio =
             l1L2SetReport.ResultStatistics?.Median /
-                l2SetReport.ResultStatistics?.Median;
-        Assert.IsTrue(
-            l1L2SetVsl2SetRatio < 3,
+                l2SetReport.ResultStatistics?.Median ?? 0;
+        Assert.IsLessThan(
+            3,
+            l1L2SetVsl2SetRatio,
             $"L1L2RedisCache Set cannot perform significantly worse (< 3) than RedisCache Set: {l1L2SetVsl2SetRatio}");
     }
 }

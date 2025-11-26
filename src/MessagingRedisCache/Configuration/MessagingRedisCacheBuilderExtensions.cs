@@ -9,33 +9,34 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </summary>
 public static class MessagingRedisCacheBuilderExtensions
 {
-    public static IMessagingRedisCacheBuilder AddMemoryCacheSubscriber(
-        this IMessagingRedisCacheBuilder builder)
+    extension(
+        IMessagingRedisCacheBuilder builder)
     {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        builder.Services.TryAddSingleton<DefaultMessageSubscriber>();
-        builder.Services.TryAddSingleton<KeyeventMessageSubscriber>();
-        builder.Services.TryAddSingleton<KeyspaceMessageSubscriber>();
-        builder.Services.AddSingleton<IMessageSubscriber>(
-            serviceProvider =>
-            {
-                var options = serviceProvider
-                    .GetRequiredService<IOptions<MessagingRedisCacheOptions>>()
-                    .Value;
-
-                return options.MessagingType switch
+        public IMessagingRedisCacheBuilder AddMemoryCacheSubscriber()
+        {
+            builder.Services.TryAddSingleton<DefaultMessageSubscriber>();
+            builder.Services.TryAddSingleton<KeyeventMessageSubscriber>();
+            builder.Services.TryAddSingleton<KeyspaceMessageSubscriber>();
+            builder.Services.AddSingleton<IMessageSubscriber>(
+                serviceProvider =>
                 {
-                    MessagingType.Default =>
-                        serviceProvider.GetRequiredService<DefaultMessageSubscriber>(),
-                    MessagingType.KeyeventNotifications =>
-                        serviceProvider.GetRequiredService<KeyeventMessageSubscriber>(),
-                    MessagingType.KeyspaceNotifications =>
-                        serviceProvider.GetRequiredService<KeyspaceMessageSubscriber>(),
-                    _ => throw new NotImplementedException(),
-                };
-            });
+                    var options = serviceProvider
+                        .GetRequiredService<IOptions<MessagingRedisCacheOptions>>()
+                        .Value;
 
-        return builder;
+                    return options.MessagingType switch
+                    {
+                        MessagingType.Default =>
+                            serviceProvider.GetRequiredService<DefaultMessageSubscriber>(),
+                        MessagingType.KeyeventNotifications =>
+                            serviceProvider.GetRequiredService<KeyeventMessageSubscriber>(),
+                        MessagingType.KeyspaceNotifications =>
+                            serviceProvider.GetRequiredService<KeyspaceMessageSubscriber>(),
+                        _ => throw new NotImplementedException(),
+                    };
+                });
+
+            return builder;
+        }
     }
 }

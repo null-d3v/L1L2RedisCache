@@ -3,9 +3,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace MessagingRedisCache.Tests.System;
 
 [TestClass]
-public class DefaultMessagingTests() :
+public class DefaultMessagingTests(
+    TestContext testContext) :
     MessagingTestsBase(
-        MessagingType.Default)
+        MessagingType.Default,
+        testContext)
 {
     [TestInitialize]
     public override void TestInitialize()

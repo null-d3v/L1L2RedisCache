@@ -5,8 +5,8 @@ namespace MessagingRedisCache;
 /// <summary>
 /// Configuration options for <c>L1L2RedisCache</c>.
 /// </summary>
-public class MessagingRedisCacheOptions() :
-    RedisCacheOptions()
+public class MessagingRedisCacheOptions :
+    RedisCacheOptions
 {
     /// <summary>
     /// The pub/sub channel name.

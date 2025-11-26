@@ -9,8 +9,11 @@ namespace MessagingRedisCache.Tests.System;
 public class HybridCacheTests :
     TestsBase
 {
-    public HybridCacheTests() :
-        base(MessagingType.Default)
+    public HybridCacheTests(
+        TestContext testContext) :
+        base(
+            MessagingType.Default,
+            testContext)
     {
         PrimaryServices.AddHybridCache();
         SecondaryServices.AddHybridCache();
@@ -57,9 +60,9 @@ public class HybridCacheTests :
                 .SetAsync(
                     key,
                     value,
-                    HybridCacheEntryOptions)
+                    HybridCacheEntryOptions,
+                    cancellationToken: TestContext.CancellationToken)
                 .ConfigureAwait(false);
-            var test = await PrimaryDistributedCache.GetAsync(key).ConfigureAwait(false);
             Assert.IsTrue(
                 messageAutoResetEvent
                     .WaitOne(EventTimeout));
@@ -70,7 +73,8 @@ public class HybridCacheTests :
                         key,
                         cancellationToken =>
                             ValueTask.FromResult<string?>(null),
-                        HybridCacheEntryOptions)
+                        HybridCacheEntryOptions,
+                        cancellationToken: TestContext.CancellationToken)
                     .ConfigureAwait(false));
             Assert.IsNull(
                 SecondaryMemoryCache
@@ -82,7 +86,8 @@ public class HybridCacheTests :
                         key,
                         cancellationToken =>
                             ValueTask.FromResult<string?>(null),
-                        HybridCacheEntryOptions)
+                        HybridCacheEntryOptions,
+                        cancellationToken: TestContext.CancellationToken)
                     .ConfigureAwait(false));
             Assert.IsNotNull(
                 SecondaryMemoryCache
@@ -90,7 +95,8 @@ public class HybridCacheTests :
 
             await PrimaryHybridCache
                 .RemoveAsync(
-                    key)
+                    key,
+                    cancellationToken: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
                 messageAutoResetEvent

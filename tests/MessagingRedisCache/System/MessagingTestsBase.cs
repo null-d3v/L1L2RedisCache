@@ -10,9 +10,11 @@ namespace MessagingRedisCache.Tests.System;
 
 [TestClass]
 public abstract class MessagingTestsBase(
-    MessagingType messagingType) :
+    MessagingType messagingType,
+    TestContext testContext) :
     TestsBase(
-        messagingType)
+        messagingType,
+        testContext)
 {
     [TestInitialize]
     public override void TestInitialize()
@@ -40,7 +42,10 @@ public abstract class MessagingTestsBase(
             var value = Guid.NewGuid().ToString();
 
             await PrimaryDistributedCache
-                .SetStringAsync(key, value)
+                .SetStringAsync(
+                    key,
+                    value,
+                    token: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
                 messageAutoResetEvent
@@ -50,7 +55,8 @@ public abstract class MessagingTestsBase(
                 .Set(key, value);
             await PrimaryDistributedCache
                 .RemoveAsync(
-                    key)
+                    key,
+                    token: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
                 messageAutoResetEvent
@@ -82,7 +88,10 @@ public abstract class MessagingTestsBase(
             var value = Guid.NewGuid().ToString();
 
             await PrimaryDistributedCache
-                .SetStringAsync(key, value)
+                .SetStringAsync(
+                    key,
+                    value,
+                    token: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
                 messageAutoResetEvent
@@ -127,7 +136,8 @@ public abstract class MessagingTestsBase(
                 .SetStringAsync(
                     key,
                     value,
-                    DistributedCacheEntryOptions)
+                    DistributedCacheEntryOptions,
+                    token: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
                 messageAutoResetEvent

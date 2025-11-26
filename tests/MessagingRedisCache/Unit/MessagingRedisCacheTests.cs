@@ -10,8 +10,11 @@ namespace MessagingRedisCache.Tests.Unit;
 [TestClass]
 public class MessagingRedisCacheTests
 {
-    public MessagingRedisCacheTests()
+    public MessagingRedisCacheTests(
+        TestContext testContext)
     {
+        TestContext = testContext;
+
         MessagingRedisCacheOptions = new MessagingRedisCacheOptions
         {
             InstanceName = "L1L2RedisCache:Test:",
@@ -71,6 +74,7 @@ public class MessagingRedisCacheTests
     public IMessageSubscriber MessageSubscriber { get; }
     public MessagingRedisCacheOptions MessagingRedisCacheOptions { get; }
     public MessagingRedisCache MessagingRedisCache { get; }
+    public TestContext TestContext { get; set; }
 
     [TestMethod]
     public async Task RemoveAsyncTest()
@@ -78,14 +82,17 @@ public class MessagingRedisCacheTests
         var key = "key";
 
         await MessagingRedisCache
-            .RemoveAsync(key)
+            .RemoveAsync(
+                key,
+                token: TestContext.CancellationToken)
             .ConfigureAwait(false);
 
         await MessagePublisher
             .Received()
             .PublishAsync(
                 Arg.Any<IConnectionMultiplexer>(),
-                key)
+                key,
+                cancellationToken: TestContext.CancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -111,14 +118,18 @@ public class MessagingRedisCacheTests
         var value = "   "u8.ToArray();
 
         await MessagingRedisCache
-            .SetAsync(key, value)
+            .SetAsync(
+                key,
+                value,
+                token: TestContext.CancellationToken)
             .ConfigureAwait(false);
 
         await MessagePublisher
             .Received()
             .PublishAsync(
                 Arg.Any<IConnectionMultiplexer>(),
-                key)
+                key,
+                cancellationToken: TestContext.CancellationToken)
             .ConfigureAwait(false);
     }
 

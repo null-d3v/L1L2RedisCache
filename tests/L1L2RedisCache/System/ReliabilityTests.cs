@@ -8,18 +8,17 @@ using StackExchange.Redis;
 namespace L1L2RedisCache.Tests.System;
 
 [TestClass]
-public class ReliabilityTests
+public class ReliabilityTests(
+    TestContext testContext)
 {
-    public ReliabilityTests()
-    {
-        Configuration = new ConfigurationBuilder()
+    public IConfiguration Configuration { get; } =
+        new ConfigurationBuilder()
             .AddJsonFile("appsettings.json")
             .Build();
-        EventTimeout = TimeSpan.FromSeconds(5);
-    }
-
-    public IConfiguration Configuration { get; }
-    public TimeSpan EventTimeout { get; }
+    public TimeSpan EventTimeout { get; } =
+        TimeSpan.FromSeconds(5);
+    public TestContext TestContext { get; set; } =
+        testContext;
 
     [TestMethod]
     public void InitializeBadConnectionTest()
@@ -48,8 +47,10 @@ public class ReliabilityTests
         Assert.IsFalse(
             subscribeAutoResetEvent
                 .WaitOne(EventTimeout));
-        Assert.ThrowsExceptionAsync<RedisConnectionException>(
+        Assert.ThrowsAsync<RedisConnectionException>(
             () => l1L2Cache
-                .GetStringAsync(string.Empty));
+                .GetStringAsync(
+                    string.Empty,
+                    token: TestContext.CancellationToken));
     }
 }

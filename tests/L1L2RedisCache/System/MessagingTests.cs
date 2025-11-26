@@ -1,4 +1,3 @@
-using System.Text;
 using MessagingRedisCache;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -6,22 +5,22 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Text;
 
 namespace L1L2RedisCache.Tests.System;
 
 [TestClass]
-public class MessagingTests
+public class MessagingTests(
+    TestContext testContext)
 {
-    public MessagingTests()
-    {
-        Configuration = new ConfigurationBuilder()
+    public IConfiguration Configuration { get; } =
+        new ConfigurationBuilder()
             .AddJsonFile("appsettings.json")
             .Build();
-        EventTimeout = TimeSpan.FromSeconds(5);
-    }
-
-    public IConfiguration Configuration { get; }
-    public TimeSpan EventTimeout { get; }
+    public TimeSpan EventTimeout { get; } =
+        TimeSpan.FromSeconds(5);
+    public TestContext TestContext { get; set; } =
+        testContext;
 
     [DataRow(100, MessagingType.Default)]
     [DataRow(100, MessagingType.KeyeventNotifications)]
@@ -92,7 +91,9 @@ public class MessagingTests
             // L1 population via L2
             await primaryL1L2Cache
                 .SetStringAsync(
-                    key, value)
+                    key,
+                    value,
+                    token: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
                 messageAutoResetEvent
@@ -103,7 +104,9 @@ public class MessagingTests
             Assert.AreEqual(
                 value,
                 await secondaryL1L2Cache
-                    .GetStringAsync(key)
+                    .GetStringAsync(
+                        key,
+                        token: TestContext.CancellationToken)
                     .ConfigureAwait(false));
             Assert.IsTrue(
                 Encoding.ASCII.GetBytes(value).SequenceEqual(
@@ -113,7 +116,9 @@ public class MessagingTests
             // L1 population via L2
             await primaryL1L2Cache
                 .SetStringAsync(
-                    key, value)
+                    key,
+                    value,
+                    token: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
                 messageAutoResetEvent
@@ -124,7 +129,9 @@ public class MessagingTests
             Assert.AreEqual(
                 value,
                 await secondaryL1L2Cache
-                    .GetStringAsync(key)
+                    .GetStringAsync(
+                        key,
+                        token: TestContext.CancellationToken)
                     .ConfigureAwait(false));
             Assert.IsTrue(
                 Encoding.ASCII.GetBytes(value).SequenceEqual(
@@ -132,7 +139,9 @@ public class MessagingTests
 
             // L1 eviction via remove
             await primaryL1L2Cache
-                .RemoveAsync(key)
+                .RemoveAsync(
+                    key,
+                    token: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
                 messageAutoResetEvent
@@ -142,7 +151,9 @@ public class MessagingTests
                     .Get(key));
             Assert.IsNull(
                 await secondaryL1L2Cache
-                    .GetStringAsync(key)
+                    .GetStringAsync(
+                        key,
+                        token: TestContext.CancellationToken)
                     .ConfigureAwait(false));
         }
     }

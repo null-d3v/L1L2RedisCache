@@ -6,13 +6,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace MessagingRedisCache.Tests.System;
 
-[TestClass]
 public abstract class TestsBase
 {
     internal TestsBase(
-        MessagingType messagingType)
+        MessagingType messagingType,
+        TestContext testContext)
     {
         MessagingType = messagingType;
+        TestContext = testContext;
 
         PrimaryServices = new ServiceCollection();
         PrimaryServices.AddSingleton(Configuration);
@@ -57,6 +58,7 @@ public abstract class TestsBase
     public IDistributedCache SecondaryDistributedCache { get; private set; } = default!;
     public IMemoryCache SecondaryMemoryCache { get; private set; } = default!;
     public IServiceProvider SecondaryServiceProvider { get; private set; } = default!;
+    public TestContext TestContext { get; }
 
     protected IServiceCollection PrimaryServices { get; private set; } = default!;
     protected IServiceCollection SecondaryServices { get; private set; } = default!;
@@ -98,7 +100,8 @@ public abstract class TestsBase
         Assert.IsTrue(
             await configurationVerifier
                 .VerifyConfigurationAsync(
-                    messagingRedisCache.Database.Value)
+                    messagingRedisCache.Database.Value,
+                    cancellationToken: TestContext.CancellationToken)
                 .ConfigureAwait(false));
     }
 }
