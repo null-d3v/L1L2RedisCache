@@ -4,7 +4,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;
 
 namespace L1L2RedisCache.Tests.System;
@@ -30,11 +29,21 @@ public class MessagingTests(
         int iterations,
         MessagingType messagingType)
     {
+        using var messageAutoResetEvent =
+            new AutoResetEvent(false);
+        using var subscribeAutoResetEvent =
+            new AutoResetEvent(false);
+
         var primaryServices = new ServiceCollection();
         primaryServices.AddSingleton(Configuration);
         primaryServices.AddL1L2RedisCache(options =>
         {
             Configuration.Bind("L1L2RedisCache", options);
+            options.Events.OnSubscribe = () =>
+            {
+                subscribeAutoResetEvent.Set();
+                return Task.CompletedTask;
+            };
             options.MessagingType = messagingType;
         });
         using var primaryServiceProvider = primaryServices
@@ -56,23 +65,15 @@ public class MessagingTests(
         secondaryServices.AddL1L2RedisCache(options =>
         {
             Configuration.Bind("L1L2RedisCache", options);
+            options.Events.OnMessageRecieved = channelMessage =>
+            {
+                messageAutoResetEvent.Set();
+                return Task.CompletedTask;
+            };
             options.MessagingType = messagingType;
         });
         using var secondaryServiceProvider = secondaryServices
             .BuildServiceProvider();
-
-        var secondaryMessageSubscriber = secondaryServiceProvider
-            .GetRequiredService<IMessageSubscriber>();
-        using var messageAutoResetEvent = new AutoResetEvent(false);
-        using var subscribeAutoResetEvent = new AutoResetEvent(false);
-        secondaryMessageSubscriber.OnMessage += (sender, e) =>
-        {
-            messageAutoResetEvent.Set();
-        };
-        secondaryMessageSubscriber.OnSubscribe += (sender, e) =>
-        {
-            subscribeAutoResetEvent.Set();
-        };
 
         var secondaryL1Cache = secondaryServiceProvider
             .GetRequiredService<IMemoryCache>();

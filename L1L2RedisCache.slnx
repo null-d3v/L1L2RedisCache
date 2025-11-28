@@ -1,0 +1,19 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/labs/">
+    <Project Path="labs/MessagingRedisCache/MessagingRedisCache.Lab.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/L1L2RedisCache/L1L2RedisCache.csproj" />
+    <Project Path="src/MessagingRedisCache/MessagingRedisCache.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/L1L2RedisCache/System/L1L2RedisCache.Tests.System.csproj" />
+    <Project Path="tests/MessagingRedisCache/System/MessagingRedisCache.Tests.System.csproj" />
+    <Project Path="tests/MessagingRedisCache/Unit/MessagingRedisCache.Tests.Unit.csproj" />
+  </Folder>
+</Solution>

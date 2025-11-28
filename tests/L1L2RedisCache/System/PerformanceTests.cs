@@ -1,7 +1,6 @@
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Extensions;
 using BenchmarkDotNet.Running;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace L1L2RedisCache.Tests.System;
 

@@ -14,8 +14,6 @@ internal class KeyspaceMessageSubscriber(
         memoryCache;
     public MessagingRedisCacheOptions MessagingRedisCacheOptions { get; set; } =
         messagingRedisCacheOptionsAccessor.Value;
-    public EventHandler<OnMessageEventArgs>? OnMessage { get; set; }
-    public EventHandler? OnSubscribe { get; set; }
 
     private Regex ChannelPrefixRegex { get; } = new(
         @$"__keyspace@\d*__:{messagingRedisCacheOptionsAccessor.Value.InstanceName}");
@@ -24,18 +22,20 @@ internal class KeyspaceMessageSubscriber(
         IConnectionMultiplexer connectionMultiplexer,
         CancellationToken cancellationToken = default)
     {
-        await connectionMultiplexer
+        (await connectionMultiplexer
             .GetSubscriber()
             .SubscribeAsync(
                 new RedisChannel(
                     $"__keyspace@*__:{MessagingRedisCacheOptions.InstanceName}*",
-                    RedisChannel.PatternMode.Pattern),
-                ProcessMessage)
-            .ConfigureAwait(false);
+                    RedisChannel.PatternMode.Pattern))
+            .ConfigureAwait(false))
+            .OnMessage(ProcessMessageAsync);
 
-        OnSubscribe?.Invoke(
-            this,
-            EventArgs.Empty);
+        await MessagingRedisCacheOptions
+            .Events
+            .OnSubscribe
+            .Invoke()
+            .ConfigureAwait(false);
     }
 
     public async Task UnsubscribeAsync(
@@ -51,22 +51,23 @@ internal class KeyspaceMessageSubscriber(
             .ConfigureAwait(false);
     }
 
-    internal void ProcessMessage(
-        RedisChannel channel,
-        RedisValue message)
+    internal async Task ProcessMessageAsync(
+        ChannelMessage channelMessage)
     {
-        if (message == "del" ||
-            message == "hset")
+        if (channelMessage.Message == "del" ||
+            channelMessage.Message == "hset")
         {
             var key = ChannelPrefixRegex.Replace(
-                channel.ToString(),
+                channelMessage.Channel.ToString(),
                 string.Empty);
             MemoryCache.Remove(
                 key);
 
-            OnMessage?.Invoke(
-                this,
-                new OnMessageEventArgs(key));
+            await MessagingRedisCacheOptions
+                .Events
+                .OnMessageRecieved
+                .Invoke(channelMessage)
+                .ConfigureAwait(false);
         }
     }
 }

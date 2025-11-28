@@ -8,16 +8,6 @@ namespace MessagingRedisCache;
 public interface IMessageSubscriber
 {
     /// <summary>
-    /// An event that is raised when a message is recieved.
-    /// </summary>
-    EventHandler<OnMessageEventArgs>? OnMessage { get; set; }
-
-    /// <summary>
-    /// An event that is raised when a subscription is created.
-    /// </summary>
-    EventHandler? OnSubscribe { get; set; }
-
-    /// <summary>
     /// Subscribes to messages indicating cache values have changed.
     /// </summary>
     /// <param name="connectionMultiplexer">The <c>StackExchange.Redis.IConnectionMultiplexer</c> for subscribing.</param>

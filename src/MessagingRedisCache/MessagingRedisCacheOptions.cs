@@ -3,7 +3,7 @@
 namespace MessagingRedisCache;
 
 /// <summary>
-/// Configuration options for <c>L1L2RedisCache</c>.
+/// Configuration options for <c>MessagingRedisCache</c>.
 /// </summary>
 public class MessagingRedisCacheOptions :
     RedisCacheOptions
@@ -13,6 +13,12 @@ public class MessagingRedisCacheOptions :
     /// </summary>
     public string Channel =>
         $"{InstanceName}{nameof(MessagingRedisCache)}";
+
+    /// <summary>
+    /// Specifies which events the <c>MessagingRedisCache</c> invokes.
+    /// </summary>
+    public MessagingRedisCacheEvents Events { get; set; } =
+        new MessagingRedisCacheEvents();
 
     /// <summary>
     /// Unique identifier for the operating instance.

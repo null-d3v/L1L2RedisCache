@@ -14,25 +14,25 @@ internal class DefaultMessageSubscriber(
         memoryCache;
     public MessagingRedisCacheOptions MessagingRedisCacheOptions { get; set; } =
         messagingRedisCacheOptionsAccessor.Value;
-    public EventHandler<OnMessageEventArgs>? OnMessage { get; set; }
-    public EventHandler? OnSubscribe { get; set; }
 
     public async Task SubscribeAsync(
         IConnectionMultiplexer connectionMultiplexer,
         CancellationToken cancellationToken = default)
     {
-        await connectionMultiplexer
+        (await connectionMultiplexer
             .GetSubscriber()
             .SubscribeAsync(
                 new RedisChannel(
                     MessagingRedisCacheOptions.Channel,
-                    RedisChannel.PatternMode.Literal),
-                ProcessMessage)
-            .ConfigureAwait(false);
+                    RedisChannel.PatternMode.Literal))
+            .ConfigureAwait(false))
+            .OnMessage(ProcessMessageAsync);
 
-        OnSubscribe?.Invoke(
-            this,
-            EventArgs.Empty);
+        await MessagingRedisCacheOptions
+            .Events
+            .OnSubscribe
+            .Invoke()
+            .ConfigureAwait(false);
     }
 
     public async Task UnsubscribeAsync(
@@ -48,13 +48,12 @@ internal class DefaultMessageSubscriber(
             .ConfigureAwait(false);
     }
 
-    internal void ProcessMessage(
-        RedisChannel channel,
-        RedisValue message)
+    internal async Task ProcessMessageAsync(
+        ChannelMessage channelMessage)
     {
         var cacheMessage = JsonSerializer
             .Deserialize(
-                message.ToString(),
+                channelMessage.Message.ToString(),
                 SourceGenerationContext.Default.CacheMessage);
         if (cacheMessage != null &&
             cacheMessage.PublisherId != MessagingRedisCacheOptions.Id)
@@ -62,9 +61,11 @@ internal class DefaultMessageSubscriber(
             MemoryCache.Remove(
                 cacheMessage.Key);
 
-            OnMessage?.Invoke(
-                this,
-                new OnMessageEventArgs(cacheMessage.Key));
+            await MessagingRedisCacheOptions
+                .Events
+                .OnMessageRecieved
+                .Invoke(channelMessage)
+                .ConfigureAwait(false);
         }
     }
 }

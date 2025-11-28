@@ -2,7 +2,6 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace MessagingRedisCache.Tests.System;
 
@@ -24,7 +23,7 @@ public abstract class TestsBase
                 Configuration.Bind("MessagingRedisCache", options);
                 options.MessagingType = MessagingType;
             })
-            .AddMemoryCacheSubscriber();;
+            .AddMemoryCacheSubscriber();
 
         SecondaryServices = new ServiceCollection();
         SecondaryServices.AddSingleton(Configuration);
@@ -37,6 +36,9 @@ public abstract class TestsBase
             })
             .AddMemoryCacheSubscriber();
     }
+
+    public virtual Action<MessagingRedisCacheOptions>? PrimaryOptionsConfigureAction { get; set; }
+    public virtual Action<MessagingRedisCacheOptions>? SecondaryOptionsConfigureAction { get; set; }
 
     public IConfiguration Configuration { get; } =
         new ConfigurationBuilder()
@@ -66,6 +68,12 @@ public abstract class TestsBase
     [TestInitialize]
     public virtual void TestInitialize()
     {
+        if (PrimaryOptionsConfigureAction != null)
+        {
+            PrimaryServices
+                .Configure(
+                    PrimaryOptionsConfigureAction);
+        }
         PrimaryServiceProvider = PrimaryServices
             .BuildServiceProvider();
         PrimaryDistributedCache = PrimaryServiceProvider
@@ -73,6 +81,12 @@ public abstract class TestsBase
         PrimaryMemoryCache = PrimaryServiceProvider
             .GetRequiredService<IMemoryCache>();
 
+        if (SecondaryOptionsConfigureAction != null)
+        {
+            SecondaryServices
+                .Configure(
+                    SecondaryOptionsConfigureAction);
+        }
         SecondaryServiceProvider = SecondaryServices
             .BuildServiceProvider();
         SecondaryDistributedCache = SecondaryServiceProvider

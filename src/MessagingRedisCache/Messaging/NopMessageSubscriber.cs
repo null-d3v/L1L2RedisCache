@@ -5,9 +5,6 @@ namespace MessagingRedisCache;
 internal sealed class NopMessageSubscriber :
     IMessageSubscriber
 {
-    public EventHandler<OnMessageEventArgs>? OnMessage { get; set; }
-    public EventHandler? OnSubscribe { get; set; }
-
     public Task SubscribeAsync(
         IConnectionMultiplexer connectionMultiplexer,
         CancellationToken cancellationToken = default)

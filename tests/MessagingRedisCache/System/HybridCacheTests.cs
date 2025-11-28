@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace MessagingRedisCache.Tests.System;
 
@@ -17,6 +16,15 @@ public class HybridCacheTests :
     {
         PrimaryServices.AddHybridCache();
         SecondaryServices.AddHybridCache();
+
+        SecondaryOptionsConfigureAction = options =>
+        {
+            options.Events.OnMessageRecieved = channelMessage =>
+            {
+                MessageAutoResetEvent.Set();
+                return Task.CompletedTask;
+            };
+        };
     }
 
     public HybridCacheEntryOptions HybridCacheEntryOptions { get; } =
@@ -24,6 +32,8 @@ public class HybridCacheTests :
         {
             Expiration = TimeSpan.FromHours(1),
         };
+    public AutoResetEvent MessageAutoResetEvent { get; } =
+        new AutoResetEvent(false);
     public HybridCache PrimaryHybridCache =>
         PrimaryServiceProvider
             .GetRequiredService<HybridCache>();
@@ -43,14 +53,6 @@ public class HybridCacheTests :
         await SetAndVerifyConfigurationAsync()
             .ConfigureAwait(false);
 
-        var secondaryMessageSubscriber = SecondaryServiceProvider
-            .GetRequiredService<IMessageSubscriber>();
-        using var messageAutoResetEvent = new AutoResetEvent(false);
-        secondaryMessageSubscriber.OnMessage += (sender, e) =>
-        {
-            messageAutoResetEvent.Set();
-        };
-
         for (var iteration = 0; iteration < Iterations; iteration++)
         {
             var key = Guid.NewGuid().ToString();
@@ -64,7 +66,7 @@ public class HybridCacheTests :
                     cancellationToken: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
-                messageAutoResetEvent
+                MessageAutoResetEvent
                     .WaitOne(EventTimeout));
             Assert.AreEqual(
                 value,
@@ -99,7 +101,7 @@ public class HybridCacheTests :
                     cancellationToken: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
-                messageAutoResetEvent
+                MessageAutoResetEvent
                     .WaitOne(EventTimeout));
             Assert.IsNull(
                 PrimaryMemoryCache

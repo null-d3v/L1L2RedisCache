@@ -14,7 +14,7 @@ jobs:
             uses: devcontainers/ci@v0.3
             with:
                 push: never
-                runCmd: dotnet test
+                runCmd: dotnet test --max-parallel-test-modules 1
     publish:
         runs-on: ubuntu-latest
         steps:

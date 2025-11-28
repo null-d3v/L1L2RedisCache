@@ -1,8 +1,6 @@
-using MessagingRedisCache;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using StackExchange.Redis;
 
 namespace L1L2RedisCache.Tests.System;
@@ -23,23 +21,23 @@ public class ReliabilityTests(
     [TestMethod]
     public void InitializeBadConnectionTest()
     {
+        using var subscribeAutoResetEvent =
+            new AutoResetEvent(false);
+
         var services = new ServiceCollection();
         services.AddSingleton(Configuration);
         services.AddL1L2RedisCache(options =>
         {
             Configuration.Bind("L1L2RedisCache", options);
+            options.Events.OnSubscribe = () =>
+            {
+                subscribeAutoResetEvent.Set();
+                return Task.CompletedTask;
+            };
             options.Configuration = "localhost:80";
         });
         using var serviceProvider = services
             .BuildServiceProvider();
-
-        var messageSubscriber = serviceProvider
-            .GetRequiredService<IMessageSubscriber>();
-        using var subscribeAutoResetEvent = new AutoResetEvent(false);
-        messageSubscriber.OnSubscribe += (sender, e) =>
-        {
-            subscribeAutoResetEvent.Set();
-        };
 
         var l1L2Cache = serviceProvider
             .GetRequiredService<IDistributedCache>();

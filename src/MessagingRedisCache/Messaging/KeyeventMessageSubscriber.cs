@@ -13,34 +13,34 @@ internal class KeyeventMessageSubscriber(
         memoryCache;
     public MessagingRedisCacheOptions MessagingRedisCacheOptions { get; set; } =
         messagingRedisCacheOptionsAccessor.Value;
-    public EventHandler<OnMessageEventArgs>? OnMessage { get; set; }
-    public EventHandler? OnSubscribe { get; set; }
 
     public async Task SubscribeAsync(
         IConnectionMultiplexer connectionMultiplexer,
         CancellationToken cancellationToken = default)
     {
-        await connectionMultiplexer
+        (await connectionMultiplexer
             .GetSubscriber()
             .SubscribeAsync(
                 new RedisChannel(
                     "__keyevent@*__:del",
-                    RedisChannel.PatternMode.Pattern),
-                ProcessMessage)
-            .ConfigureAwait(false);
+                    RedisChannel.PatternMode.Pattern))
+            .ConfigureAwait(false))
+            .OnMessage(ProcessMessageAsync);
 
-        await connectionMultiplexer
+        (await connectionMultiplexer
             .GetSubscriber()
             .SubscribeAsync(
                 new RedisChannel(
                     "__keyevent@*__:hset",
-                    RedisChannel.PatternMode.Pattern),
-                ProcessMessage)
-            .ConfigureAwait(false);
+                    RedisChannel.PatternMode.Pattern))
+            .ConfigureAwait(false))
+            .OnMessage(ProcessMessageAsync);
 
-        OnSubscribe?.Invoke(
-            this,
-            EventArgs.Empty);
+        await MessagingRedisCacheOptions
+            .Events
+            .OnSubscribe
+            .Invoke()
+            .ConfigureAwait(false);
     }
 
     public async Task UnsubscribeAsync(
@@ -64,23 +64,24 @@ internal class KeyeventMessageSubscriber(
             .ConfigureAwait(false);
     }
 
-    internal void ProcessMessage(
-        RedisChannel channel,
-        RedisValue message)
+    internal async Task ProcessMessageAsync(
+        ChannelMessage channelMessage)
     {
         if (string.IsNullOrEmpty(
                 MessagingRedisCacheOptions.InstanceName) ||
-            message.StartsWith(
+            channelMessage.Message.StartsWith(
                 MessagingRedisCacheOptions.InstanceName))
         {
-            var key = message
-                .ToString()[(MessagingRedisCacheOptions.InstanceName?.Length ?? 0)..];
+            var key = channelMessage.Message
+                .ToString()[ (MessagingRedisCacheOptions.InstanceName?.Length ?? 0).. ];
             MemoryCache.Remove(
                 key);
 
-            OnMessage?.Invoke(
-                this,
-                new OnMessageEventArgs(key));
+            await MessagingRedisCacheOptions
+                .Events
+                .OnMessageRecieved
+                .Invoke(channelMessage)
+                .ConfigureAwait(false);
         }
     }
 }

@@ -1,21 +1,35 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace MessagingRedisCache.Tests.System;
 
 [TestClass]
-public abstract class MessagingTestsBase(
-    MessagingType messagingType,
-    TestContext testContext) :
-    TestsBase(
-        messagingType,
-        testContext)
+public abstract class MessagingTestsBase :
+    TestsBase
 {
+    protected MessagingTestsBase(
+        MessagingType messagingType,
+        TestContext testContext) :
+        base(
+            messagingType,
+            testContext)
+    {
+        SecondaryOptionsConfigureAction = options =>
+        {
+            options.Events.OnMessageRecieved = channelMessage =>
+            {
+                MessageAutoResetEvent.Set();
+                return Task.CompletedTask;
+            };
+        };
+    }
+
+    public AutoResetEvent MessageAutoResetEvent { get; } =
+        new AutoResetEvent(false);
+
     [TestInitialize]
     public override void TestInitialize()
     {
@@ -27,14 +41,6 @@ public abstract class MessagingTestsBase(
     {
         await SetAndVerifyConfigurationAsync()
             .ConfigureAwait(false);
-
-        var secondaryMessageSubscriber = SecondaryServiceProvider
-            .GetRequiredService<IMessageSubscriber>();
-        using var messageAutoResetEvent = new AutoResetEvent(false);
-        secondaryMessageSubscriber.OnMessage += (sender, e) =>
-        {
-            messageAutoResetEvent.Set();
-        };
 
         for (var iteration = 0; iteration < Iterations; iteration++)
         {
@@ -48,7 +54,7 @@ public abstract class MessagingTestsBase(
                     token: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
-                messageAutoResetEvent
+                MessageAutoResetEvent
                     .WaitOne(EventTimeout));
 
             SecondaryMemoryCache
@@ -59,7 +65,7 @@ public abstract class MessagingTestsBase(
                     token: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
-                messageAutoResetEvent
+                MessageAutoResetEvent
                     .WaitOne(EventTimeout));
             Assert.IsNull(
                 SecondaryMemoryCache
@@ -74,14 +80,6 @@ public abstract class MessagingTestsBase(
         await SetAndVerifyConfigurationAsync()
             .ConfigureAwait(false);
 
-        var secondaryMessageSubscriber = SecondaryServiceProvider
-            .GetRequiredService<IMessageSubscriber>();
-        using var messageAutoResetEvent = new AutoResetEvent(false);
-        secondaryMessageSubscriber.OnMessage += (sender, e) =>
-        {
-            messageAutoResetEvent.Set();
-        };
-
         for (var iteration = 0; iteration < Iterations; iteration++)
         {
             var key = Guid.NewGuid().ToString();
@@ -94,7 +92,7 @@ public abstract class MessagingTestsBase(
                     token: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
-                messageAutoResetEvent
+                MessageAutoResetEvent
                     .WaitOne(EventTimeout));
 
             SecondaryMemoryCache
@@ -103,7 +101,7 @@ public abstract class MessagingTestsBase(
                 .Remove(
                     key);
             Assert.IsTrue(
-                messageAutoResetEvent
+                MessageAutoResetEvent
                     .WaitOne(EventTimeout));
             Assert.IsNull(
                 SecondaryMemoryCache
@@ -116,14 +114,6 @@ public abstract class MessagingTestsBase(
     {
         await SetAndVerifyConfigurationAsync()
             .ConfigureAwait(false);
-
-        var secondaryMessageSubscriber = SecondaryServiceProvider
-            .GetRequiredService<IMessageSubscriber>();
-        using var messageAutoResetEvent = new AutoResetEvent(false);
-        secondaryMessageSubscriber.OnMessage += (sender, e) =>
-        {
-            messageAutoResetEvent.Set();
-        };
 
         for (var iteration = 0; iteration < Iterations; iteration++)
         {
@@ -140,7 +130,7 @@ public abstract class MessagingTestsBase(
                     token: TestContext.CancellationToken)
                 .ConfigureAwait(false);
             Assert.IsTrue(
-                messageAutoResetEvent
+                MessageAutoResetEvent
                     .WaitOne(EventTimeout));
             Assert.IsNull(
                 SecondaryMemoryCache
@@ -155,14 +145,6 @@ public abstract class MessagingTestsBase(
         await SetAndVerifyConfigurationAsync()
             .ConfigureAwait(false);
 
-        var secondaryMessageSubscriber = SecondaryServiceProvider
-            .GetRequiredService<IMessageSubscriber>();
-        using var messageAutoResetEvent = new AutoResetEvent(false);
-        secondaryMessageSubscriber.OnMessage += (sender, e) =>
-        {
-            messageAutoResetEvent.Set();
-        };
-
         for (var iteration = 0; iteration < Iterations; iteration++)
         {
             var key = Guid.NewGuid().ToString();
@@ -176,7 +158,7 @@ public abstract class MessagingTestsBase(
                     Encoding.ASCII.GetBytes(value),
                     DistributedCacheEntryOptions);
             Assert.IsTrue(
-                messageAutoResetEvent
+                MessageAutoResetEvent
                     .WaitOne(EventTimeout));
             Assert.IsNull(
                 SecondaryMemoryCache
