@@ -6,7 +6,7 @@
 public enum MessagingType
 {
     /// <summary>
-    /// Use standard <c>L1L2RedisCache</c> <see href="https://redis.io/topics/pubsub">pub/sub</see> messages for L1 memory cache eviction. The Redis server requires no additional configuration.
+    /// Use standard <c>MessagingRedisCache</c> <see href="https://redis.io/topics/pubsub">pub/sub</see> messages for L1 memory cache eviction. The Redis server requires no additional configuration.
     /// </summary>
     Default = 0,
 
