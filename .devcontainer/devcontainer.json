@@ -20,7 +20,6 @@
         "redis:6379"
     ],
     "name": "L1L2RedisCache",
-    "postCreateCommand": "dotnet dev-certs https",
     "remoteUser": "root",
     "service": "devcontainer",
     "shutdownAction": "stopCompose",

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
+    <NoWarn>CA1724;</NoWarn>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PublishAot>true</PublishAot>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MessagingRedisCache.Tests.System" />
+    <InternalsVisibleTo Include="MessagingRedisCache.Tests.Unit" />
+  </ItemGroup>
+</Project>

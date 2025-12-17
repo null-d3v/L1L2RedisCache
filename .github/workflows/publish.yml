@@ -14,7 +14,7 @@ jobs:
             uses: devcontainers/ci@v0.3
             with:
                 push: never
-                runCmd: dotnet test
+                runCmd: dotnet test --max-parallel-test-modules 1
     publish:
         runs-on: ubuntu-latest
         steps:
@@ -24,8 +24,8 @@ jobs:
           - name: Setup
             uses: actions/setup-dotnet@v4
             with:
-                dotnet-version: 9
-          - name: Build
-            run: dotnet build -c Release
+                dotnet-version: 10
+          - name: Pack
+            run: dotnet pack -c Release
           - name: Publish
             run: dotnet nuget push "**/*.nupkg" -k ${{ secrets.NUGET_KEY }} -n -s https://api.nuget.org/v3/index.json --skip-duplicate

@@ -3,6 +3,7 @@
 dotnet_diagnostic.severity = warning
 dotnet_diagnostic.CS1591.severity = none
 dotnet_diagnostic.IDE0001.severity = warning
+dotnet_diagnostic.IDE0005.severity = warning
 dotnet_diagnostic.IDE0007.severity = warning
 dotnet_diagnostic.IDE0008.severity = none
 dotnet_diagnostic.IDE0010.severity = none
@@ -17,6 +18,9 @@ dotnet_diagnostic.IDE0300.severity = warning
 dotnet_diagnostic.IDE0301.severity = warning
 dotnet_diagnostic.IDE0303.severity = warning
 dotnet_diagnostic.IDE0305.severity = warning
+
+dotnet_diagnostic.MSTEST0016.severity = warning
+dotnet_diagnostic.MSTEST0049.severity = warning
 
 csharp_space_between_square_brackets = true
 csharp_style_var_elsewhere = true:warning
