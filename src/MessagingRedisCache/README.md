@@ -35,7 +35,21 @@ services
     .AddMemoryCacheSubscriber();
 ```
 
-This should be done explicitly when using [`HybridCache`](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/hybrid) and is done automatically when using [`L1L2RedisCache`](../L1L2RedisCache/README.md).
+This is done automatically when using [`L1L2RedisCache`](../L1L2RedisCache/README.md), but should be done explicitly when using [`HybridCache`](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/hybrid). A complete `HybridCache` configuration could appear as such:
+
+```
+var services = new ServiceCollection();
+services.AddHybridCache();
+services.AddMessagingRedisCache(options =>
+{
+    options.Configuration = "redis";
+    options.InstanceName = "MessagingRedisCache:Test:";
+});
+var serviceProvider = services.BuildServiceProvider();
+
+var hybridCache = serviceProvider
+    .GetRequiredService<HybridCache>();
+```
 
 ## MessagingRedisCacheOptions
 
@@ -50,4 +64,3 @@ The type of message publishing system to use:
 | `Default` | Publish standard `MessagingRedisCache` [pub/sub](https://redis.io/topics/pubsub) messages. | Default behavior. The Redis server requires no additional configuration. |
 | `KeyeventNotifications` | Rely on [keyevent notifications](https://redis.io/topics/notifications) for message publishing instead of standard `MessagingRedisCache` [pub/sub](https://redis.io/topics/pubsub) messages. The Redis server must have keyevent notifications enabled. | This is only advisable if the Redis server is already using [keyevent notifications](https://redis.io/topics/notifications) with at least a `ghE` configuration and the majority of keys in the server are managed by `MessagingRedisCache`. |
 | `KeyspaceNotifications` | Rely on [keyspace notifications](https://redis.io/topics/notifications) for message publishing instead of standard `MessagingRedisCache` [pub/sub](https://redis.io/topics/pubsub) messages. The Redis server must have keyspace notifications enabled. | This is only advisable if the Redis server is already using [keyevent notifications](https://redis.io/topics/notifications) with at least a `ghK` configuration and the majority of keys in the server are managed by `MessagingRedisCache`. |
-
