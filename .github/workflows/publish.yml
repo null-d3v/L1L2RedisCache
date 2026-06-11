@@ -9,7 +9,7 @@ jobs:
     test:
         runs-on: ubuntu-latest
         steps:
-          - uses: actions/checkout@v4
+          - uses: actions/checkout@v6
           - name: Test
             uses: devcontainers/ci@v0.3
             with:
@@ -18,11 +18,11 @@ jobs:
     publish:
         runs-on: ubuntu-latest
         steps:
-          - uses: actions/checkout@v4
+          - uses: actions/checkout@v6
           - name: Version
             run: echo "VERSION=${GITHUB_REF:10}+${GITHUB_SHA::8}" >> $GITHUB_ENV
           - name: Setup
-            uses: actions/setup-dotnet@v4
+            uses: actions/setup-dotnet@v5
             with:
                 dotnet-version: 10
           - name: Pack
