@@ -5,4 +5,4 @@ services:
           - ..:/workspace:cached
         command: sleep infinity
     redis:
-        image: redis
+        image: valkey/valkey

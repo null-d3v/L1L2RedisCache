@@ -65,7 +65,7 @@ public class MessagingTests(
         secondaryServices.AddL1L2RedisCache(options =>
         {
             Configuration.Bind("L1L2RedisCache", options);
-            options.Events.OnMessageRecieved = channelMessage =>
+            options.Events.OnMessageReceived = channelMessage =>
             {
                 messageAutoResetEvent.Set();
                 return Task.CompletedTask;

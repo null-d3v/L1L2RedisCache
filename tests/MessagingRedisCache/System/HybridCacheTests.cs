@@ -19,7 +19,7 @@ public class HybridCacheTests :
 
         SecondaryOptionsConfigureAction = options =>
         {
-            options.Events.OnMessageRecieved = channelMessage =>
+            options.Events.OnMessageReceived = channelMessage =>
             {
                 MessageAutoResetEvent.Set();
                 return Task.CompletedTask;

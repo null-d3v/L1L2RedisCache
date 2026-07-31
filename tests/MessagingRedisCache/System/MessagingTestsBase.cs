@@ -19,7 +19,7 @@ public abstract class MessagingTestsBase :
     {
         SecondaryOptionsConfigureAction = options =>
         {
-            options.Events.OnMessageRecieved = channelMessage =>
+            options.Events.OnMessageReceived = channelMessage =>
             {
                 MessageAutoResetEvent.Set();
                 return Task.CompletedTask;
