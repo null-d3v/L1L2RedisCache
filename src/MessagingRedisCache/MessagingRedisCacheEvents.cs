@@ -8,9 +8,9 @@ namespace MessagingRedisCache;
 public class MessagingRedisCacheEvents
 {
     /// <summary>
-    /// Invoked when a message is recieved.
+    /// Invoked when a message is received.
     /// </summary>
-    public Func<ChannelMessage, Task> OnMessageRecieved { get; set; } =
+    public Func<ChannelMessage, Task> OnMessageReceived { get; set; } =
         channelMessage => Task.CompletedTask;
 
     /// <summary>

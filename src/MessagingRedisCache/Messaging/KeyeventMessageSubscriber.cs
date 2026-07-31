@@ -79,7 +79,7 @@ internal class KeyeventMessageSubscriber(
 
             await MessagingRedisCacheOptions
                 .Events
-                .OnMessageRecieved
+                .OnMessageReceived
                 .Invoke(channelMessage)
                 .ConfigureAwait(false);
         }

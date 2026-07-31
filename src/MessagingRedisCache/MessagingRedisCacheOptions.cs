@@ -33,6 +33,12 @@ public class MessagingRedisCacheOptions :
         MessagingType.Default;
 
     /// <summary>
+    /// The maximum number of retries for subscriber intialization.
+    /// </summary>
+    public int SubscriberRetryAttempts { get; set; } =
+        5;
+
+    /// <summary>
     /// The duration of time to delay before retrying subscriber intialization.
     /// </summary>
     public TimeSpan SubscriberRetryDelay { get; set; } =

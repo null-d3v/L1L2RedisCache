@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 
 namespace MessagingRedisCache;
 
@@ -284,13 +285,25 @@ public class MessagingRedisCache :
         IsDisposed = true;
     }
 
+    [SuppressMessage("Design", "CA1031")]
     private async Task SubscribeAsync(
         CancellationToken cancellationToken = default)
     {
+        var subscribeAttempt = 0;
         while (true)
         {
             try
             {
+                subscribeAttempt++;
+                if (subscribeAttempt >
+                        MessagingRedisCacheOptions.SubscriberRetryAttempts)
+                {
+                    Logger.SubscribeFailed();
+                    break;
+                }
+                Logger.SubscribeAttempt(
+                    subscribeAttempt);
+
                 if (!await MessagingConfigurationVerifier
                         .VerifyConfigurationAsync(
                             Database.Value,
@@ -306,11 +319,12 @@ public class MessagingRedisCache :
                         Database.Value.Multiplexer,
                         cancellationToken)
                     .ConfigureAwait(false);
+                Logger.SubscribeSucceeded();
                 break;
             }
-            catch (RedisConnectionException redisConnectionException)
+            catch (Exception redisConnectionException)
             {
-                Logger.SubscriberFailed(
+                Logger.SubscribeAttemptFailed(
                     MessagingRedisCacheOptions
                         .SubscriberRetryDelay,
                     redisConnectionException);

@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 var services = new ServiceCollection();
+services.AddLogging(builder => builder.AddConsole());
 services.AddHybridCache();
 services.AddMessagingRedisCache(options =>
 {

@@ -63,7 +63,7 @@ internal class DefaultMessageSubscriber(
 
             await MessagingRedisCacheOptions
                 .Events
-                .OnMessageRecieved
+                .OnMessageReceived
                 .Invoke(channelMessage)
                 .ConfigureAwait(false);
         }

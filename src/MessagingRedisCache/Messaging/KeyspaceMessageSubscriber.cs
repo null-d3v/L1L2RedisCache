@@ -65,7 +65,7 @@ internal class KeyspaceMessageSubscriber(
 
             await MessagingRedisCacheOptions
                 .Events
-                .OnMessageRecieved
+                .OnMessageReceived
                 .Invoke(channelMessage)
                 .ConfigureAwait(false);
         }
