@@ -13,6 +13,13 @@ internal static partial class MessagingRedisCacheLoggerExtensions
         Exception? exception = null);
 
     [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Messaging configuration cannot be automatically verified")]
+    public static partial void MessagingConfigurationUnverified(
+        this ILogger<MessagingRedisCache> logger,
+        Exception? exception = null);
+
+    [LoggerMessage(
         Level = LogLevel.Information,
         Message = "Attempt {Attempt} to initialize subscriber")]
     public static partial void SubscribeAttempt(
@@ -37,7 +44,7 @@ internal static partial class MessagingRedisCacheLoggerExtensions
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "Subscriber succesfully initialized")]
+        Message = "Subscriber successfully initialized")]
     public static partial void SubscribeSucceeded(
         this ILogger<MessagingRedisCache> logger,
         Exception? exception = null);

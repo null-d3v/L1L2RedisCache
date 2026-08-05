@@ -304,14 +304,22 @@ public class MessagingRedisCache :
                 Logger.SubscribeAttempt(
                     subscribeAttempt);
 
-                if (!await MessagingConfigurationVerifier
-                        .VerifyConfigurationAsync(
-                            Database.Value,
-                            cancellationToken)
-                        .ConfigureAwait(false))
+                try
                 {
-                    Logger.MessagingConfigurationInvalid(
-                        MessagingRedisCacheOptions.MessagingType);
+                    if (!await MessagingConfigurationVerifier
+                            .VerifyConfigurationAsync(
+                                Database.Value,
+                                cancellationToken)
+                            .ConfigureAwait(false))
+                    {
+                        Logger.MessagingConfigurationInvalid(
+                            MessagingRedisCacheOptions.MessagingType);
+                    }
+                }
+                catch (RedisCommandException redisCommandException)
+                {
+                    Logger.MessagingConfigurationUnverified(
+                        redisCommandException);
                 }
 
                 await MessageSubscriber
@@ -322,12 +330,12 @@ public class MessagingRedisCache :
                 Logger.SubscribeSucceeded();
                 break;
             }
-            catch (Exception redisConnectionException)
+            catch (Exception exception)
             {
                 Logger.SubscribeAttemptFailed(
                     MessagingRedisCacheOptions
                         .SubscriberRetryDelay,
-                    redisConnectionException);
+                    exception);
 
                 await Task
                     .Delay(
