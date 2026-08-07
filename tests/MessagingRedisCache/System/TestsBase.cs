@@ -2,6 +2,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace MessagingRedisCache.Tests.System;
 
@@ -16,6 +17,10 @@ public abstract class TestsBase
 
         PrimaryServices = new ServiceCollection();
         PrimaryServices.AddSingleton(Configuration);
+        PrimaryServices.AddLogging(builder =>
+        {
+            builder.AddConsole();
+        });
         PrimaryServices.AddMemoryCache();
         PrimaryServices
             .AddMessagingRedisCache(options =>
@@ -27,6 +32,10 @@ public abstract class TestsBase
 
         SecondaryServices = new ServiceCollection();
         SecondaryServices.AddSingleton(Configuration);
+        SecondaryServices.AddLogging(builder =>
+        {
+            builder.AddConsole();
+        });
         SecondaryServices.AddMemoryCache();
         SecondaryServices
             .AddMessagingRedisCache(options =>
@@ -65,6 +74,11 @@ public abstract class TestsBase
     protected IServiceCollection PrimaryServices { get; private set; } = default!;
     protected IServiceCollection SecondaryServices { get; private set; } = default!;
 
+    private AutoResetEvent PrimarySubscribeAutoResetEvent { get; } =
+        new(false);
+    private AutoResetEvent SecondarySubscribeAutoResetEvent { get; } =
+        new(false);
+
     [TestInitialize]
     public virtual void TestInitialize()
     {
@@ -74,6 +88,15 @@ public abstract class TestsBase
                 .Configure(
                     PrimaryOptionsConfigureAction);
         }
+        PrimaryServices.Configure<MessagingRedisCacheOptions>(
+            options =>
+            {
+                options.Events.OnSubscribe = () =>
+                {
+                    PrimarySubscribeAutoResetEvent.Set();
+                    return Task.CompletedTask;
+                };
+            });
         PrimaryServiceProvider = PrimaryServices
             .BuildServiceProvider();
         PrimaryDistributedCache = PrimaryServiceProvider
@@ -87,12 +110,26 @@ public abstract class TestsBase
                 .Configure(
                     SecondaryOptionsConfigureAction);
         }
+        SecondaryServices.Configure<MessagingRedisCacheOptions>(
+            options =>
+            {
+                options.Events.OnSubscribe = () =>
+                {
+                    SecondarySubscribeAutoResetEvent.Set();
+                    return Task.CompletedTask;
+                };
+            });
         SecondaryServiceProvider = SecondaryServices
             .BuildServiceProvider();
         SecondaryDistributedCache = SecondaryServiceProvider
             .GetRequiredService<IDistributedCache>();
         SecondaryMemoryCache = SecondaryServiceProvider
             .GetRequiredService<IMemoryCache>();
+
+        PrimarySubscribeAutoResetEvent
+            .WaitOne(EventTimeout);
+        SecondarySubscribeAutoResetEvent
+            .WaitOne(EventTimeout);
     }
 
     public async Task SetAndVerifyConfigurationAsync()
