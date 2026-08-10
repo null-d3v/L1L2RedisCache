@@ -317,10 +317,12 @@ public class MessagingRedisCache :
                             MessagingRedisCacheOptions.MessagingType);
                     }
                 }
-                catch (RedisCommandException redisCommandException)
+                catch (Exception exception)
+                when (exception is RedisCommandException ||
+                    exception is RedisServerException)
                 {
                     Logger.MessagingConfigurationUnverified(
-                        redisCommandException);
+                        exception);
                 }
 
                 await MessageSubscriber
