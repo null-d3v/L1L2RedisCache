@@ -279,6 +279,7 @@ public class MessagingRedisCache :
 
         if (isDisposing)
         {
+            SubscribeCancellationTokenSource.Cancel();
             SubscribeCancellationTokenSource.Dispose();
         }
 
